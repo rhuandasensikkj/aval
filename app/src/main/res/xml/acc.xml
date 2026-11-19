@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewTextChanged|typeViewFocused|typeViewClicked|typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewTextChanged|typeViewFocused|typeWindowContentChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagRequestFilterKeyEvents"
-    android:notificationTimeout="40"
-    android:canRetrieveWindowContent="true"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows|flagRequestFilterKeyEvents"
     android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
     android:canTakeScreenshot="true"
-    android:canRequestFilterKeyEvents="true"
-    android:description="@string/accdesc"/>
-    
+    android:description="@string/app_name"
+    android:notificationTimeout="80"
+    android:settingsActivity="com.aval.seg.MainActivity" />

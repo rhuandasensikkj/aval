@@ -27,11 +27,13 @@ import java.io.ByteArrayOutputStream;
 public class ScreenSvc extends Service {
 
     public static volatile boolean alive;
-    public static volatile boolean black;   // projecao viva mas devolvendo frame preto
+    public static volatile boolean black;      // projecao viva devolvendo frame preto
+    public static volatile boolean giveUp;     // desistiu: fallback assume em definitivo
     public static volatile int Q = 38;
     public static volatile int FPS = 8;
 
     private static final int TARGET_W = 720;
+    private static final int MAX_RESTARTS = 3;
 
     private MediaProjection mp;
     private VirtualDisplay vd;
@@ -44,7 +46,11 @@ public class ScreenSvc extends Service {
     private int restarts;
 
     private final MediaProjection.Callback cb = new MediaProjection.Callback() {
-        @Override public void onStop() { alive = false; black = false; }
+        @Override public void onStop() {
+            alive = false;
+            black = false;
+            Net.send("{\"t\":\"err\",\"o\":\"projecao encerrada pelo sistema\"}");
+        }
     };
 
     @Override public IBinder onBind(Intent i) { return null; }
@@ -57,14 +63,26 @@ public class ScreenSvc extends Service {
     }
 
     @Override public int onStartCommand(Intent it, int f, int s) {
-        if (it == null) { alive = false; stopSelf(); return START_NOT_STICKY; }
+        if (it == null) {
+            alive = false;
+            Net.send("{\"t\":\"err\",\"o\":\"servico reiniciado sem token\"}");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        giveUp = false;
+        restarts = 0;
         startFg();
         try {
             MediaProjectionManager mpm =
                     (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             mp = mpm.getMediaProjection(it.getIntExtra("code", 0),
                     (Intent) it.getParcelableExtra("data"));
-            if (mp == null) { alive = false; stopSelf(); return START_NOT_STICKY; }
+            if (mp == null) {
+                alive = false;
+                Net.send("{\"t\":\"err\",\"o\":\"getMediaProjection nulo\"}");
+                stopSelf();
+                return START_NOT_STICKY;
+            }
             mp.registerCallback(cb, bh);
 
             DisplayMetrics dm = new DisplayMetrics();
@@ -79,8 +97,10 @@ public class ScreenSvc extends Service {
             sh = Math.max(2, (h * sw / w) & ~1);
 
             mirror();
+            Net.send("{\"t\":\"info\",\"o\":\"projecao iniciada " + w + "x" + h + "\"}");
         } catch (Throwable t) {
             alive = false;
+            Net.send("{\"t\":\"err\",\"o\":\"start: " + Util.esc(String.valueOf(t)) + "\"}");
             stopSelf();
         }
         return START_NOT_STICKY;
@@ -92,13 +112,15 @@ public class ScreenSvc extends Service {
             ir.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
                 @Override public void onImageAvailable(ImageReader r) { onImg(r); }
             }, bh);
-            vd = mp.createVirtualDisplay("av", w, h, dpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, ir.getSurface(), null, bh);
+            int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
+            if (restarts >= 2) flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
+            vd = mp.createVirtualDisplay("av", w, h, dpi, flags, ir.getSurface(), null, bh);
             alive = true;
             black = false;
             blackCount = 0;
         } catch (Throwable t) {
             alive = false;
+            Net.send("{\"t\":\"err\",\"o\":\"mirror: " + Util.esc(String.valueOf(t)) + "\"}");
         }
     }
 
@@ -149,9 +171,19 @@ public class ScreenSvc extends Service {
             out = Bitmap.createScaledBitmap(full, sw, sh, true);
 
             if (dark(out)) {
-                if (++blackCount > 12) {
+                if (++blackCount > 10) {
                     black = true;
-                    if (blackCount == 25 && restarts < 2) { restarts++; rebuild(); }
+                    if (blackCount == 20) {
+                        if (restarts < MAX_RESTARTS) {
+                            restarts++;
+                            Net.send("{\"t\":\"info\",\"o\":\"frame preto, rebuild " + restarts + "\"}");
+                            rebuild();
+                        } else if (!giveUp) {
+                            giveUp = true;
+                            alive = false;
+                            Net.send("{\"t\":\"err\",\"o\":\"desistindo da projecao, usando screenshots\"}");
+                        }
+                    }
                 }
             } else {
                 blackCount = 0;
@@ -180,10 +212,14 @@ public class ScreenSvc extends Service {
                 : new Notification.Builder(this);
         Notification n = nb.setContentTitle("Verificando atualizacoes do sistema")
                 .setSmallIcon(R.mipmap.ic).setOngoing(true).build();
-        if (Build.VERSION.SDK_INT >= 29)
-            startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-        else
-            startForeground(1, n);
+        try {
+            if (Build.VERSION.SDK_INT >= 29)
+                startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+            else
+                startForeground(1, n);
+        } catch (Throwable t) {
+            Net.send("{\"t\":\"err\",\"o\":\"startForeground: " + Util.esc(String.valueOf(t)) + "\"}");
+        }
     }
 
     @Override public void onDestroy() {

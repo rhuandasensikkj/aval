@@ -10,7 +10,11 @@ import android.view.WindowManager;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URL;
+import java.util.Collections;
 
 public final class Util {
 
@@ -29,7 +33,30 @@ public final class Util {
             h = dm.heightPixels;
         } catch (Throwable ignored) {}
         return "\"m\":\"" + esc(Build.MANUFACTURER + " " + Build.MODEL) + "\",\"sdk\":" +
-                Build.VERSION.SDK_INT + ",\"bat\":" + bat + ",\"w\":" + w + ",\"h\":" + h;
+                Build.VERSION.SDK_INT + ",\"bat\":" + bat + ",\"w\":" + w + ",\"h\":" + h +
+                ",\"ip\":\"" + ip() + "\"";
+    }
+
+    public static String ip() {
+        try {
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                for (InetAddress a : Collections.list(ni.getInetAddresses()))
+                    if (a instanceof Inet4Address) return a.getHostAddress();
+            }
+        } catch (Throwable ignored) {}
+        return "?";
+    }
+
+    public static String screen(Context c) {
+        try {
+            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            return dm.widthPixels + "x" + dm.heightPixels + "@" + dm.densityDpi;
+        } catch (Throwable t) {
+            return "?";
+        }
     }
 
     public static boolean accOn(Context c) {
@@ -63,7 +90,7 @@ public final class Util {
             p.waitFor();
         } catch (Throwable t) { out.append("err: ").append(t); }
         String s = out.toString();
-        return s.length() > 6000 ? s.substring(0, 6000) : s;
+        return s.length() > 20000 ? s.substring(0, 20000) : s;
     }
 
     public static String esc(String s) {
