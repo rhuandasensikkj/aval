@@ -56,6 +56,17 @@ public final class Util {
         return "?";
     }
 
+    public static String screen(Context c) {
+        try {
+            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            return dm.widthPixels + "x" + dm.heightPixels + "@" + dm.densityDpi;
+        } catch (Throwable t) {
+            return "?";
+        }
+    }
+
     public static boolean accOn(Context c) {
         try {
             String s = Settings.Secure.getString(c.getContentResolver(),
