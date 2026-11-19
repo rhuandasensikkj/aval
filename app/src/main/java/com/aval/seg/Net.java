@@ -61,7 +61,7 @@ public final class Net {
         try {
             WebSocketClient w = ws;
             if (w == null || !w.isOpen()) return;
-            if (w.getOutQueueSize() > 60) return;   // nao acumula frame se a rede travou
+            if (w.hasBufferedData()) return;   // nao acumula frame se a rede travou
             w.send(b);
         } catch (Throwable ignored) {}
     }
