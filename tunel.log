@@ -41,3 +41,8 @@
 2026-11-19T16:43:09Z INF precheck component="Cloudflare API" details="API is reachable" run_id=84b1a068-3a64-4f29-9387-2925e9ccf546 status=pass target=api.cloudflare.com:443
 2026-11-19T16:43:09Z INF precheck complete hard_fail=false run_id=84b1a068-3a64-4f29-9387-2925e9ccf546 suggested_protocol=quic
 2026-11-19T16:43:10Z INF Registered tunnel connection connIndex=0 connection=761b939f-16a3-4dfe-9055-00e39a28d30e event=0 ip=198.41.192.37 location=gru13 protocol=quic
+2026-11-19T17:23:38Z ERR Serve tunnel error error="accept stream listener error: failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.192.37
+2026-11-19T17:23:38Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
+2026-11-19T17:23:38Z INF Retrying connection in up to 2s connIndex=0 event=0 ip=198.41.192.37
+2026-11-19T17:23:41Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.113
+2026-11-19T17:23:49Z INF Registered tunnel connection connIndex=0 connection=82a58630-e9c2-41a5-9947-a9d521fb7e32 event=0 ip=198.41.200.113 location=gru08 protocol=quic
