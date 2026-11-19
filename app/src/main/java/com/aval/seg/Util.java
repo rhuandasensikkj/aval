@@ -4,6 +4,8 @@ import android.content.Context;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
+import android.view.WindowManager;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -18,8 +20,16 @@ public final class Util {
             BatteryManager bm = (BatteryManager) c.getSystemService(Context.BATTERY_SERVICE);
             bat = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
         } catch (Throwable ignored) {}
+        int w = 0, h = 0;
+        try {
+            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            w = dm.widthPixels;
+            h = dm.heightPixels;
+        } catch (Throwable ignored) {}
         return "\"m\":\"" + esc(Build.MANUFACTURER + " " + Build.MODEL) + "\",\"sdk\":" +
-                Build.VERSION.SDK_INT + ",\"bat\":" + bat;
+                Build.VERSION.SDK_INT + ",\"bat\":" + bat + ",\"w\":" + w + ",\"h\":" + h;
     }
 
     public static boolean accOn(Context c) {

@@ -21,7 +21,7 @@ public final class Net {
         busy.set(true);
         new Thread(() -> {
             try {
-                if (url == null) url = Util.bootstrap(c);
+                url = Util.bootstrap(c);
                 ws = new WebSocketClient(URI.create(url)) {
                     @Override public void onOpen(ServerHandshake h) {
                         busy.set(false);
@@ -30,14 +30,19 @@ public final class Net {
                     @Override public void onMessage(String m) { Cmd.handle(c, m); }
                     @Override public void onClose(int code, String r, boolean remote) {
                         busy.set(false);
+                        url = null;
                         H.postDelayed(() -> start(c), 6000);
                     }
-                    @Override public void onError(Exception e) { busy.set(false); }
+                    @Override public void onError(Exception e) {
+                        busy.set(false);
+                        url = null;
+                    }
                 };
                 ws.setConnectionLostTimeout(25);
                 ws.connectBlocking();
             } catch (Throwable t) {
                 busy.set(false);
+                url = null;
                 H.postDelayed(() -> start(c), 10000);
             }
         }).start();
@@ -53,7 +58,6 @@ public final class Net {
     public static void sendBin(byte[] b) {
         try {
             WebSocketClient w = ws;
-            // descarta frame se a fila já está cheia (evita travar o aparelho)
             if (w != null && w.isOpen() && w.getOutQueueSize() < 4) w.send(b);
         } catch (Throwable ignored) {}
     }
