@@ -1,0 +1,9 @@
+build/
+.gradle/
+local.properties
+ks.jks
+cloudflared.exe
+config.yml
+/*.png
+/*.webp
+*.iml
