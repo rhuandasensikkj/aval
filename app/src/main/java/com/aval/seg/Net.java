@@ -28,9 +28,7 @@ public final class Net {
             try {
                 List<String> urls = Util.candidates(c);
                 Log.d("aval", "candidatos: " + urls);
-                for (String u : urls) {
-                    if (tryConnect(c, u)) { ok = true; break; }
-                }
+                for (String u : urls) if (tryConnect(c, u)) { ok = true; break; }
             } catch (Throwable t) {
                 Log.d("aval", "start: " + t);
             }

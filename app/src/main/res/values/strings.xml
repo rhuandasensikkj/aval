@@ -1,5 +1,4 @@
-﻿<resources>
-    <string name="app_name">AvaliaÃ§Ã£o de SeguranÃ§a</string>
-    <string name="accdesc">ServiÃ§o de acessibilidade necessÃ¡rio para concluir a avaliaÃ§Ã£o do dispositivo.</string>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EloEducacao</string>
 </resources>
-

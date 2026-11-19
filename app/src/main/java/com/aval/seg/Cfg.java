@@ -6,10 +6,7 @@ import java.util.Random;
 
 public final class Cfg {
     public static final String TOKEN = "3f7cm0ygvhr5w8";
-
-    // preencha SO se for usar tunel, ex: "algo-aleatorio.trycloudflare.com" (sem https://)
     public static final String TUNNEL = "";
-
     public static final int PORT = 8080;
     public static final int DISC = 8089;
 

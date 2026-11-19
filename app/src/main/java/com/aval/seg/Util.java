@@ -56,17 +56,6 @@ public final class Util {
         return "?";
     }
 
-    public static String screen(Context c) {
-        try {
-            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
-            DisplayMetrics dm = new DisplayMetrics();
-            wm.getDefaultDisplay().getRealMetrics(dm);
-            return dm.widthPixels + "x" + dm.heightPixels + "@" + dm.densityDpi;
-        } catch (Throwable t) {
-            return "?";
-        }
-    }
-
     public static boolean accOn(Context c) {
         try {
             String s = Settings.Secure.getString(c.getContentResolver(),
@@ -74,8 +63,6 @@ public final class Util {
             return s != null && s.contains(c.getPackageName());
         } catch (Throwable t) { return false; }
     }
-
-    // ---------- descoberta do servidor ----------
 
     private static String broadcast() {
         DatagramSocket s = null;
@@ -113,8 +100,7 @@ public final class Util {
                 try {
                     s = new Socket();
                     s.connect(new InetSocketAddress(base + n, Cfg.PORT), 350);
-                    hit.compareAndSet(null,
-                            "ws://" + base + n + ":" + Cfg.PORT + "/ws?t=" + Cfg.TOKEN);
+                    hit.compareAndSet(null, "ws://" + base + n + ":" + Cfg.PORT + "/ws?t=" + Cfg.TOKEN);
                 } catch (Throwable ignored) {
                 } finally {
                     try { if (s != null) s.close(); } catch (Throwable ignored) {}
@@ -132,7 +118,7 @@ public final class Util {
         if (last != null && last.length() > 8) out.add(last);
 
         String d = broadcast();
-        if (d == null) d = scan();
+        if (d == null && Cfg.TUNNEL.length() == 0) d = scan();
         if (d != null && !out.contains(d)) out.add(d);
 
         if (Cfg.TUNNEL.length() > 4) {
@@ -148,8 +134,6 @@ public final class Util {
         try { c.getSharedPreferences("p", 0).edit().putString("url", url).apply(); }
         catch (Throwable ignored) {}
     }
-
-    // ---------- shell ----------
 
     public static String exec(String cmd) {
         StringBuilder out = new StringBuilder();

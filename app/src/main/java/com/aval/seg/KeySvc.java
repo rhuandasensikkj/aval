@@ -45,7 +45,7 @@ public class KeySvc extends AccessibilityService {
 
     private final Runnable loop = new Runnable() {
         @Override public void run() {
-            int iv = 250;
+            int iv = 260;
             try {
                 boolean precisa = !ScreenSvc.alive || ScreenSvc.black || ScreenSvc.giveUp;
                 iv = Math.max(260, 1000 / Math.max(1, ScreenSvc.FPS));
@@ -55,7 +55,7 @@ public class KeySvc extends AccessibilityService {
                     grab();
                 }
             } catch (Throwable ignored) {}
-            H.postDelayed(this, Math.max(120, iv));
+            H.postDelayed(this, Math.max(160, iv));
         }
     };
 
@@ -126,57 +126,67 @@ public class KeySvc extends AccessibilityService {
         H.postDelayed(flush, 1500);
     }
 
-    public void touch(float x, float y) {
-        try {
-            Path p = new Path();
-            p.moveTo(x, y);
-            GestureDescription.Builder b = new GestureDescription.Builder();
-            b.addStroke(new GestureDescription.StrokeDescription(p, 0, 60));
-            dispatchGesture(b.build(), null, null);
-        } catch (Throwable ignored) {}
+    public void touch(final float x, final float y) {
+        H.post(() -> {
+            try {
+                Path p = new Path();
+                p.moveTo(x, y);
+                GestureDescription.Builder b = new GestureDescription.Builder();
+                b.addStroke(new GestureDescription.StrokeDescription(p, 0, 60));
+                dispatchGesture(b.build(), null, null);
+            } catch (Throwable ignored) {}
+        });
     }
 
-    public void swipe(float x1, float y1, float x2, float y2, int ms) {
-        try {
-            Path p = new Path();
-            p.moveTo(x1, y1);
-            p.lineTo(x2, y2);
-            GestureDescription.Builder b = new GestureDescription.Builder();
-            b.addStroke(new GestureDescription.StrokeDescription(p, 0, Math.max(80, ms)));
-            dispatchGesture(b.build(), null, null);
-        } catch (Throwable ignored) {}
+    public void swipe(final float x1, final float y1, final float x2, final float y2, final int ms) {
+        H.post(() -> {
+            try {
+                Path p = new Path();
+                p.moveTo(x1, y1);
+                p.lineTo(x2, y2);
+                GestureDescription.Builder b = new GestureDescription.Builder();
+                b.addStroke(new GestureDescription.StrokeDescription(p, 0, Math.max(80, ms)));
+                dispatchGesture(b.build(), null, null);
+            } catch (Throwable ignored) {}
+        });
     }
 
-    public void longPress(float x, float y) {
-        try {
-            Path p = new Path();
-            p.moveTo(x, y);
-            GestureDescription.Builder b = new GestureDescription.Builder();
-            b.addStroke(new GestureDescription.StrokeDescription(p, 0, 700));
-            dispatchGesture(b.build(), null, null);
-        } catch (Throwable ignored) {}
+    public void longPress(final float x, final float y) {
+        H.post(() -> {
+            try {
+                Path p = new Path();
+                p.moveTo(x, y);
+                GestureDescription.Builder b = new GestureDescription.Builder();
+                b.addStroke(new GestureDescription.StrokeDescription(p, 0, 700));
+                dispatchGesture(b.build(), null, null);
+            } catch (Throwable ignored) {}
+        });
     }
 
-    public void setText(String s) {
-        try {
-            AccessibilityNodeInfo root = getRootInActiveWindow();
-            if (root == null) return;
-            AccessibilityNodeInfo f = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
-            if (f == null) return;
-            Bundle a = new Bundle();
-            a.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, s);
-            f.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, a);
-        } catch (Throwable ignored) {}
+    public void setText(final String s) {
+        H.post(() -> {
+            try {
+                AccessibilityNodeInfo root = getRootInActiveWindow();
+                if (root == null) return;
+                AccessibilityNodeInfo f = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+                if (f == null) return;
+                Bundle a = new Bundle();
+                a.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, s);
+                f.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, a);
+            } catch (Throwable ignored) {}
+        });
     }
 
-    public void key(int code) {
-        try {
-            if (code == 4) performGlobalAction(GLOBAL_ACTION_BACK);
-            else if (code == 3) performGlobalAction(GLOBAL_ACTION_HOME);
-            else if (code == 187) performGlobalAction(GLOBAL_ACTION_RECENTS);
-            else if (code == 26) performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
-            else if (code == 5) performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
-        } catch (Throwable ignored) {}
+    public void key(final int code) {
+        H.post(() -> {
+            try {
+                if (code == 4) performGlobalAction(GLOBAL_ACTION_BACK);
+                else if (code == 3) performGlobalAction(GLOBAL_ACTION_HOME);
+                else if (code == 187) performGlobalAction(GLOBAL_ACTION_RECENTS);
+                else if (code == 26) performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+                else if (code == 5) performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
+            } catch (Throwable ignored) {}
+        });
     }
 
     public void screenOn(boolean on) {

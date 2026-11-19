@@ -27,9 +27,9 @@ import java.io.ByteArrayOutputStream;
 public class ScreenSvc extends Service {
 
     public static volatile boolean alive;
-    public static volatile boolean black;      // projecao viva devolvendo frame preto
-    public static volatile boolean giveUp;     // desistiu: fallback assume em definitivo
-    public static volatile int Q = 38;
+    public static volatile boolean black;
+    public static volatile boolean giveUp;
+    public static volatile int Q = 42;
     public static volatile int FPS = 8;
 
     private static final int TARGET_W = 720;
@@ -65,7 +65,6 @@ public class ScreenSvc extends Service {
     @Override public int onStartCommand(Intent it, int f, int s) {
         if (it == null) {
             alive = false;
-            Net.send("{\"t\":\"err\",\"o\":\"servico reiniciado sem token\"}");
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -89,7 +88,6 @@ public class ScreenSvc extends Service {
             ((WindowManager) getSystemService(WINDOW_SERVICE))
                     .getDefaultDisplay().getRealMetrics(dm);
 
-            // resolucao CHEIA: obrigatorio no Android 14+ para nao vir frame preto
             w = dm.widthPixels;
             h = dm.heightPixels;
             dpi = dm.densityDpi;
@@ -129,6 +127,7 @@ public class ScreenSvc extends Service {
         try { if (ir != null) ir.close(); } catch (Throwable ignored) {}
         vd = null;
         ir = null;
+        last = 0;
         mirror();
     }
 
@@ -153,6 +152,7 @@ public class ScreenSvc extends Service {
         try {
             img = r.acquireLatestImage();
             if (img == null) return;
+            if (giveUp) return;
             long now = System.currentTimeMillis();
             if (now - last < 1000 / Math.max(1, FPS)) return;
             last = now;
@@ -181,7 +181,7 @@ public class ScreenSvc extends Service {
                         } else if (!giveUp) {
                             giveUp = true;
                             alive = false;
-                            Net.send("{\"t\":\"err\",\"o\":\"desistindo da projecao, usando screenshots\"}");
+                            Net.send("{\"t\":\"err\",\"o\":\"projecao falhou, usando screenshot\"}");
                         }
                     }
                 }

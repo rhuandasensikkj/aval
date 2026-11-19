@@ -1,18 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:padding="24dp"
-    android:gravity="center_vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:background="#FFFFFF">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
 
-    <TextView android:id="@+id/txt" android:textSize="17sp" android:textColor="#111"
-        android:text="Etapa 1 de 3: ative o serviço de acessibilidade da avaliação."
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginBottom="28dp"/>
+    <TextView
+        android:id="@+id/txt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingBottom="20dp" />
 
-    <Button android:id="@+id/b1" android:text="1. Ativar acessibilidade"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
-    <Button android:id="@+id/b2" android:text="2. Permitir captura de tela"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
-    <Button android:id="@+id/b3" android:text="3. Concluir avaliação"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button
+        android:id="@+id/b1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Ativar acessibilidade" />
+
+    <Button
+        android:id="@+id/b2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2. Permitir captura de tela" />
+
+    <Button
+        android:id="@+id/b3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="3. Ignorar otimizacao de bateria" />
+
+    <Button
+        android:id="@+id/b4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reconectar agora" />
 </LinearLayout>
