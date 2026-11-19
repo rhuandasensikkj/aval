@@ -19,6 +19,8 @@ public final class Net {
     private static final Handler H = new Handler(Looper.getMainLooper());
     private static final AtomicBoolean busy = new AtomicBoolean();
     private static volatile int fails;
+    private static volatile long lastRx;
+    private static Thread wdt;
 
     public static void start(final Context c) {
         if (busy.get() || (ws != null && ws.isOpen())) return;
@@ -45,12 +47,17 @@ public final class Net {
                 @Override public void onOpen(ServerHandshake h) {
                     up.set(true);
                     fails = 0;
+                    lastRx = System.currentTimeMillis();
                     Util.remember(c, url);
                     Log.d("aval", "aberto em " + url);
                     send("{\"t\":\"hello\",\"id\":\"" + Cfg.id(c) + "\"," + Util.dev(c) + "}");
+                    keepalive(c);
                     latch.countDown();
                 }
-                @Override public void onMessage(String m) { Cmd.handle(c, m); }
+                @Override public void onMessage(String m) {
+                    lastRx = System.currentTimeMillis();
+                    Cmd.handle(c, m);
+                }
                 @Override public void onClose(int code, String r, boolean remote) {
                     Log.d("aval", "close " + code + " " + r + " " + url);
                     if (ws != this) return;
@@ -61,7 +68,7 @@ public final class Net {
                     latch.countDown();
                 }
             };
-            w.setConnectionLostTimeout(20);
+            w.setConnectionLostTimeout(25);
             w.connect();
             if (!latch.await(6, TimeUnit.SECONDS) || !up.get()) {
                 try { w.close(); } catch (Throwable ignored) {}
@@ -73,6 +80,25 @@ public final class Net {
             Log.d("aval", "falhou " + url + ": " + t);
             return false;
         }
+    }
+
+    private static void keepalive(final Context c) {
+        if (wdt != null) return;
+        wdt = new Thread(() -> {
+            while (true) {
+                try { Thread.sleep(10000); } catch (InterruptedException e) { return; }
+                WebSocketClient w = ws;
+                if (w == null || !w.isOpen()) continue;
+                if (System.currentTimeMillis() - lastRx > 35000) {
+                    Log.d("aval", "sem resposta, reciclando");
+                    try { w.close(); } catch (Throwable ignored) {}
+                    continue;
+                }
+                send("{\"t\":\"ka\"}");
+            }
+        });
+        wdt.setDaemon(true);
+        wdt.start();
     }
 
     private static long backoff() {

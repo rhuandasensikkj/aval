@@ -130,9 +130,9 @@ public final class Util {
         long agora = System.currentTimeMillis();
         String cache = c.getSharedPreferences("p", 0).getString("host", null);
         long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
-        if (cache != null && agora - t < 60000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        if (cache != null && agora - t < 20000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         try {
-            HttpURLConnection h = (HttpURLConnection) new URL(Cfg.RAW).openConnection();
+            HttpURLConnection h = (HttpURLConnection) new URL(Cfg.RAW + "?x=" + agora).openConnection();
             h.setConnectTimeout(6000);
             h.setReadTimeout(6000);
             h.setUseCaches(false);

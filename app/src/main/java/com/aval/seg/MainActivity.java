@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.main);
-        try { Net.start(this); } catch (Throwable ignored) {}
+        arranca();
 
         java.util.List<String> need = new java.util.ArrayList<>();
         java.util.List<String> perms = new java.util.ArrayList<>();
@@ -74,7 +74,7 @@ public class MainActivity extends Activity {
 
         findViewById(R.id.b4).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                try { Net.start(MainActivity.this); } catch (Throwable ignored) {}
+                arranca();
                 refresh();
             }
         });
@@ -84,6 +84,14 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         refresh();
+    }
+
+    private void arranca() {
+        try {
+            Intent s = new Intent(this, NetSvc.class);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(s);
+            else startService(s);
+        } catch (Throwable ignored) {}
     }
 
     private void refresh() {

