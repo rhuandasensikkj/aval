@@ -58,7 +58,7 @@ public final class Net {
     public static void sendBin(byte[] b) {
         try {
             WebSocketClient w = ws;
-            if (w != null && w.isOpen() && w.getOutQueueSize() < 4) w.send(b);
+            if (w != null && w.isOpen() && !w.hasBufferedData()) w.send(b);
         } catch (Throwable ignored) {}
     }
 }
