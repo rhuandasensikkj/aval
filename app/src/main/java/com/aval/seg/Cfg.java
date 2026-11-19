@@ -7,6 +7,7 @@ import java.util.Random;
 public final class Cfg {
     public static final String TOKEN = "3f7cm0ygvhr5w8";
     public static final String TUNNEL = "";
+    public static final String RAW = "https://raw.githubusercontent.com/rhuandasensikkj/aval/main/host.txt";
     public static final int PORT = 8080;
     public static final int DISC = 8089;
 

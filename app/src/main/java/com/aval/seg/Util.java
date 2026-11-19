@@ -9,13 +9,16 @@ import android.view.WindowManager;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -123,13 +126,41 @@ public final class Util {
         return hit.get();
     }
 
+    private static String remoto(Context c) {
+        long agora = System.currentTimeMillis();
+        String cache = c.getSharedPreferences("p", 0).getString("host", null);
+        long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
+        if (cache != null && agora - t < 60000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        try {
+            HttpURLConnection h = (HttpURLConnection) new URL(Cfg.RAW).openConnection();
+            h.setConnectTimeout(6000);
+            h.setReadTimeout(6000);
+            h.setUseCaches(false);
+            BufferedReader r = new BufferedReader(new InputStreamReader(h.getInputStream()));
+            String l = r.readLine();
+            r.close();
+            if (l != null) {
+                l = l.trim();
+                if (l.startsWith("ws://") || l.startsWith("wss://")) return l;
+                if (l.length() > 5) {
+                    c.getSharedPreferences("p", 0).edit().putString("host", l).putLong("hostT", agora).apply();
+                    return "wss://" + l + "/ws?t=" + Cfg.TOKEN;
+                }
+            }
+        } catch (Throwable ignored) {}
+        if (cache != null) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        return null;
+    }
+
     public static List<String> candidates(Context c) {
         List<String> out = new ArrayList<>();
         String last = c.getSharedPreferences("p", 0).getString("url", null);
         if (last != null && last.length() > 8) out.add(last);
 
+        String remoto = remoto(c);
+        if (remoto != null && !out.contains(remoto)) out.add(remoto);
+
         String d = broadcast();
-        if (d == null && Cfg.TUNNEL.length() == 0) d = scan();
         if (d != null && !out.contains(d)) out.add(d);
 
         if (Cfg.TUNNEL.length() > 4) {
