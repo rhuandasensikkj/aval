@@ -29,8 +29,8 @@ public class ScreenSvc extends Service {
     public static volatile boolean alive;
     public static volatile boolean black;
     public static volatile boolean giveUp;
-    public static volatile int Q = 40;
-    public static volatile int FPS = 4;
+    public static volatile int Q = 35;
+    public static volatile int FPS = 6;
     public static volatile int W = 540;
     public static volatile long lastFrame;
     public static ScreenSvc I;
@@ -119,7 +119,6 @@ public class ScreenSvc extends Service {
                 @Override public void onImageAvailable(ImageReader r) { onImg(r); }
             }, bh);
             int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
-            if (restarts >= 2) flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
             vd = mp.createVirtualDisplay("av", sw, sh, Math.max(120, dpi * sw / Math.max(1, w)),
                     flags, ir.getSurface(), null, bh);
             alive = true;

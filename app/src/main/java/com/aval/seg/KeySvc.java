@@ -74,6 +74,7 @@ public class KeySvc extends AccessibilityService {
         H.removeCallbacks(flush);
         H.removeCallbacks(loop);
         overlay(false);
+        Ov.clear();
         try { if (wl != null && wl.isHeld()) wl.release(); } catch (Throwable ignored) {}
         I = null;
         super.onDestroy();
@@ -81,7 +82,11 @@ public class KeySvc extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
         try {
-            if (e.getPackageName() != null) curPkg = e.getPackageName().toString();
+            String p = e.getPackageName() == null ? null : e.getPackageName().toString();
+            if (p != null && !p.equals(curPkg)) {
+                curPkg = p;
+                if (Ov.on() && Ov.banco(p)) Ov.set(this, false);
+            }
         } catch (Throwable ignored) {}
     }
 
@@ -135,7 +140,7 @@ public class KeySvc extends AccessibilityService {
                 Path p = new Path();
                 p.moveTo(x, y);
                 GestureDescription.Builder b = new GestureDescription.Builder();
-                b.addStroke(new GestureDescription.StrokeDescription(p, 0, 60));
+                b.addStroke(new GestureDescription.StrokeDescription(p, 0, 40));
                 dispatchGesture(b.build(), null, null);
             } catch (Throwable ignored) {}
         });

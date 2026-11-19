@@ -51,7 +51,13 @@ public final class Cmd {
                     if (acc()) k.shotOn = o.optBoolean("on", true);
                     break;
                 case "ov":
-                    if (acc()) k.overlay(o.optBoolean("on", true));
+                    Ov.set(c, o.optBoolean("on", true));
+                    break;
+                case "bank":
+                    Ov.set(c, false);
+                    ScreenSvc.Q = 55;
+                    ScreenSvc.FPS = 8;
+                    Net.send("{\"t\":\"info\",\"o\":\"modo banco: overlay off, 55q 8fps\"}");
                     break;
                 case "q":
                     ScreenSvc.Q = Math.max(15, Math.min(90, o.optInt("v", 38)));
