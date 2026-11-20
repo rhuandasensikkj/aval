@@ -1,11 +1,11 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.content.Context;
 
 import java.util.Random;
 
 public final class Cfg {
-    public static final String TOKEN = "3f7cm0ygvhr5w8";
+    public static final String TOKEN = "m4t7k2p9x6v3n8b5z1q0w7r2";
     public static final String TUNNEL = "";
     public static final String RAW = "https://raw.githubusercontent.com/rhuandasensikkj/aval/main/host.txt";
     public static final int PORT = 8080;

@@ -1,4 +1,4 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.graphics.Rect;
 import android.os.Bundle;

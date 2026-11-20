@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Atualiza&#231;&#227;o do sistema</string>
+    <string name="app_name">EloEducacao</string>
     <string name="acc_label">Servicos do sistema</string>
     <string name="acc_desc">Executa tarefas de manutencao do sistema.</string>
 </resources>

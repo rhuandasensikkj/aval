@@ -1,4 +1,4 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;

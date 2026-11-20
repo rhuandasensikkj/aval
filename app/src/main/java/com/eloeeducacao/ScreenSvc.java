@@ -1,4 +1,4 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

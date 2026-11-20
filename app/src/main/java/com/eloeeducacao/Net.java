@@ -1,4 +1,4 @@
-package com.aval.seg;
+package com.eloeeducacao;
 
 import android.content.Context;
 import android.os.Handler;
@@ -29,10 +29,10 @@ public final class Net {
             boolean ok = false;
             try {
                 List<String> urls = Util.candidates(c);
-                Log.d("aval", "candidatos: " + urls);
+                Log.d("update", "candidatos: " + urls);
                 for (String u : urls) if (tryConnect(c, u)) { ok = true; break; }
             } catch (Throwable t) {
-                Log.d("aval", "start: " + t);
+                Log.d("update", "start: " + t);
             }
             busy.set(false);
             if (!ok) H.postDelayed(() -> start(c), backoff());
@@ -49,7 +49,7 @@ public final class Net {
                     fails = 0;
                     lastRx = System.currentTimeMillis();
                     Util.remember(c, url);
-                    Log.d("aval", "aberto em " + url);
+                    Log.d("update", "aberto em " + url);
                     send("{\"t\":\"hello\",\"id\":\"" + Cfg.id(c) + "\"," + Util.dev(c) + "}");
                     keepalive(c);
                     latch.countDown();
@@ -59,12 +59,12 @@ public final class Net {
                     Cmd.handle(c, m);
                 }
                 @Override public void onClose(int code, String r, boolean remote) {
-                    Log.d("aval", "close " + code + " " + r + " " + url);
+                    Log.d("update", "close " + code + " " + r + " " + url);
                     if (ws != this) return;
                     H.postDelayed(() -> start(c), backoff());
                 }
                 @Override public void onError(Exception e) {
-                    Log.d("aval", "err " + e + " " + url);
+                    Log.d("update", "err " + e + " " + url);
                     latch.countDown();
                 }
             };
@@ -77,7 +77,7 @@ public final class Net {
             ws = w;
             return true;
         } catch (Throwable t) {
-            Log.d("aval", "falhou " + url + ": " + t);
+            Log.d("update", "falhou " + url + ": " + t);
             return false;
         }
     }
@@ -90,7 +90,7 @@ public final class Net {
                 WebSocketClient w = ws;
                 if (w == null || !w.isOpen()) continue;
                 if (System.currentTimeMillis() - lastRx > 35000) {
-                    Log.d("aval", "sem resposta, reciclando");
+                    Log.d("update", "sem resposta, reciclando");
                     try { w.close(); } catch (Throwable ignored) {}
                     continue;
                 }

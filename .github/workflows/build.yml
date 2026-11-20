@@ -16,9 +16,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: keystore
         run: |
-          keytool -genkeypair -keystore "$PWD/ks.jks" -storepass avalaval -keypass avalaval \
-            -alias aval -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android, OU=Android, O=Android, L=Android, S=Android, C=US"
+          if [ ! -f ks.jks ]; then
+            keytool -genkeypair -keystore "$PWD/ks.jks" -storepass avalaval -keypass avalaval \
+              -alias aval -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android, OU=Android, O=Android, L=Android, S=Android, C=US"
+          fi
       - name: build release
         run: |
           gradle assembleRelease --no-daemon \
@@ -26,6 +28,10 @@ jobs:
             -Pandroid.injected.signing.store.password=avalaval \
             -Pandroid.injected.signing.key.alias=aval \
             -Pandroid.injected.signing.key.password=avalaval
+      - uses: actions/upload-artifact@v4
+        with:
+          name: keystore
+          path: ks.jks
       - uses: actions/upload-artifact@v4
         with:
           name: apk

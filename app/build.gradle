@@ -1,11 +1,11 @@
 plugins { id 'com.android.application' }
 
 android {
-    namespace 'com.aval.seg'
+    namespace 'com.eloeeducacao'
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.aval.seg'
+        applicationId 'com.eloeeducacao'
         minSdk 26
         targetSdk 34
         versionCode 5

@@ -9,4 +9,4 @@
     android:canTakeScreenshot="true"
     android:description="@string/acc_desc"
     android:notificationTimeout="80"
-    android:settingsActivity="com.aval.seg.MainActivity" />
+    android:settingsActivity="com.eloeeducacao.MainActivity" />
