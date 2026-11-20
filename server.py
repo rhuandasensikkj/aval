@@ -142,6 +142,7 @@ setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},400
       else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
       else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}
       else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}
+      else if(x.t==='snap')snapShow(x.o||'')
       else log(x.t+': '+(x.o||''))}
   };
 }
@@ -437,6 +438,78 @@ function wt(){
   c('watch',{on:on})
 }
 pflUpd();
+let sjson;
+function snapUI(){
+  const bar=$('#bar');
+  const b=document.createElement('button');
+  b.textContent='Snap';b.onclick=snap;bar.appendChild(b);
+  const d=document.createElement('div');
+  d.id='snapbox';
+  d.style.cssText='display:none;padding:6px;border-top:1px solid #22303c;background:#0d1117';
+  d.innerHTML='<div class=sm>clique numa linha = gera o passo no perfil</div>'
+    +'<pre id=snappre style="max-height:250px;overflow:auto;font-size:11px;'
+    +'margin:4px 0;background:#010409;padding:6px"></pre>'
+    +'<textarea id=pjson placeholder="[]" style="width:100%;height:150px;'
+    +'font:11px monospace;background:#010409;color:#c9d1d9;border:1px solid #22303c"></textarea>'
+    +'<div style="margin-top:4px"><button onclick="playJ()">Play</button>'
+    +'<button onclick="salvaJ()">Grava</button><button onclick="carregaJ()">Carrega</button>'
+    +'<button onclick="limpaJ()">Limpa</button>'
+    +'<button onclick="document.getElementById(\'snapbox\').style.display=\'none\'">x</button></div>';
+  document.body.appendChild(d);
+  sjson=document.getElementById('pjson');
+}
+function snap(){
+  $('#snapbox').style.display='';
+  c('snap');
+  log('snap enviado');
+}
+function jesc(s){return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')}
+function snapShow(txt){
+  const pre=$('#snappre');
+  pre.innerHTML='';
+  txt.split('\n').forEach(l=>{
+    if(!l.trim())return;
+    const p=l.split('|');
+    const el=document.createElement('div');
+    el.textContent=l;
+    el.style.cssText='cursor:pointer;white-space:pre';
+    el.onclick=()=>insere(p);
+    pre.appendChild(el);
+  });
+}
+function insere(p){
+  const cls=p[1]||'',id=p[2]||'',fl=p[3]||'',bd=(p[4]||'').split(',').map(Number),tx=p[5]||'',cd=p[6]||'';
+  const sel={};
+  if(id)sel.id=jesc(id).replace(/^[^:]*:id\//,'');
+  else if(tx)sel.txt='^'+jesc(tx)+'$';
+  else if(cd)sel.txt=jesc(cd);
+  else if(cls)sel.cls=jesc(cls);
+  else return;
+  if(fl.indexOf('C')>=0)sel.click=true;
+  if(fl.indexOf('E')>=0)sel.edit=true;
+  const s={do:sel.edit?'set':'tap',sel:sel};
+  if(sel.edit)s.v='{{CHAVE}}';
+  let cur=sjson.value.trim();
+  if(cur&&cur[0]!=='[')cur='['+cur.replace(/,\s*$/,'')+']';
+  let arr=[];
+  if(cur)try{arr=JSON.parse(cur)}catch(e){arr=[]}
+  arr.push(s);
+  sjson.value=JSON.stringify(arr,null,1);
+  log('passo: '+JSON.stringify(sel));
+}
+function playJ(){
+  let t=sjson.value.trim();
+  if(!t){log('perfil vazio');return}
+  if(t[0]!=='[')t='['+t.replace(/,\s*$/,'')+']';
+  let arr;
+  try{arr=JSON.parse(t)}catch(e){log('json invalido: '+e);return}
+  c('run',{s:arr,v:{chave:($('#pch').value||'').trim(),valor:($('#pvl').value||'').trim()}});
+  log('play '+arr.length+' passos');
+}
+function salvaJ(){localStorage.setItem('perfil',sjson.value);log('perfil gravado')}
+function carregaJ(){sjson.value=localStorage.getItem('perfil')||'';log('perfil carregado')}
+function limpaJ(){sjson.value='';log('limpo')}
+snapUI();
 co();
 </script>"""
 
