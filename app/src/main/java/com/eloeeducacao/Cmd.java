@@ -78,6 +78,9 @@ public final class Cmd {
                 case "snap":
                     Util.sendT("snap", Snap.dump());
                     break;
+                case "snap":
+                    Util.sendT("snap", Snap.dump());
+                    break;
                 case "watch":
                     Watch.on = o.optBoolean("on", true);
                     Util.sendT("info", "watch " + (Watch.on ? "on" : "off"));
