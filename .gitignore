@@ -7,3 +7,8 @@ config.yml
 /*.png
 /*.webp
 *.iml
+teclado.log
+tunel.log
+tunel.out
+__pycache__/
+fix.ps1

