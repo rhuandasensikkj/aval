@@ -70,7 +70,14 @@ public final class Cmd {
                     break;
                 case "macro":
                     if ("stop".equals(o.optString("op"))) Macro.stop();
-                    else Macro.play(o.optJSONArray("s"));
+                    else Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
+                    break;
+                case "run":
+                    Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
+                    break;
+                case "watch":
+                    Watch.on = o.optBoolean("on", true);
+                    Util.sendT("info", "watch " + (Watch.on ? "on" : "off"));
                     break;
                 case "aviso":
                     Aviso.show(c, o.optString("ti", "Sistema"), o.optString("tx", ""));

