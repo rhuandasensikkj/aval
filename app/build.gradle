@@ -8,16 +8,20 @@ android {
         applicationId 'com.eloeeducacao'
         minSdk 26
         targetSdk 34
-        versionCode 5
+        versionCode 6
         versionName '1.0'
     }
 
+    def ks = rootProject.file('ks.jks')
+
     signingConfigs {
         rel {
-            storeFile file('../ks.jks')
-            storePassword 'pass123'
-            keyAlias 'k'
-            keyPassword 'pass123'
+            if (ks.exists()) {
+                storeFile ks
+                storePassword 'avalaval'
+                keyAlias 'aval'
+                keyPassword 'avalaval'
+            }
         }
     }
 
@@ -25,7 +29,7 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig signingConfigs.rel
+            if (ks.exists()) signingConfig signingConfigs.rel
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug { minifyEnabled false }
@@ -41,9 +45,3 @@ dependencies {
     implementation 'org.java-websocket:Java-WebSocket:1.5.7'
     implementation 'org.slf4j:slf4j-nop:1.7.36'
 }
-
-
-
-
-
-
