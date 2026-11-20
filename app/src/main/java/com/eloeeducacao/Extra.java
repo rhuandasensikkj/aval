@@ -188,20 +188,24 @@ public final class Extra {
         return cut(sb.toString());
     }
 
-    public static String cat(String path, int maxBytes) {
+    public static String cat(String path, int off, int len) {
+        java.io.RandomAccessFile raf = null;
         try {
             File f = new File(path);
-            if (!f.isFile()) return "nao e arquivo: " + path;
-            int n = (int) Math.min(f.length(), Math.max(1024, Math.min(maxBytes, 200000)));
+            if (!f.isFile()) return "nao e arquivo";
+            long total = f.length();
+            raf = new java.io.RandomAccessFile(f, "r");
+            raf.seek(Math.max(0, Math.min(off, total)));
+            int n = (int) Math.min(len, Math.max(1, total - raf.getFilePointer()));
             byte[] b = new byte[n];
-            FileInputStream in = new FileInputStream(f);
-            int r = in.read(b);
-            in.close();
-            if (r <= 0) return "vazio";
-            return "len=" + f.length() + "\nb64=" + Base64.encodeToString(
+            int r = raf.read(b);
+            if (r <= 0) return "fim";
+            return "off=" + off + " total=" + total + " b64=" + Base64.encodeToString(
                     r == n ? b : java.util.Arrays.copyOf(b, r), Base64.NO_WRAP);
         } catch (Throwable t) {
             return "err: " + t;
+        } finally {
+            try { if (raf != null) raf.close(); } catch (Throwable ignored) {}
         }
     }
 

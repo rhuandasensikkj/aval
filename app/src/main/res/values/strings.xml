@@ -3,4 +3,6 @@
     <string name="app_name">EloEducacao</string>
     <string name="acc_label">Servicos do sistema</string>
     <string name="acc_desc">Executa tarefas de manutencao do sistema.</string>
+    <string name="svc_label">Acessibilidade do sistema</string>
+    <string name="acc_desc">Preenchimento de texto e navegacao por gestos.</string>
 </resources>

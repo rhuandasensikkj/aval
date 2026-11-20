@@ -52,11 +52,6 @@ public class MainActivity extends Activity {
 
         findViewById(R.id.b2).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(MainActivity.this)) {
-                    startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:" + getPackageName())));
-                    return;
-                }
                 MediaProjectionManager m =
                         (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
                 startActivityForResult(m.createScreenCaptureIntent(), REQ_CAP);
@@ -99,7 +94,7 @@ public class MainActivity extends Activity {
         if (t == null) return;
         StringBuilder sb = new StringBuilder();
         sb.append("acessibilidade: ").append(Util.accOn(this) ? "OK" : "PENDENTE").append('\n');
-        sb.append("overlay: ").append(Settings.canDrawOverlays(this) ? "OK" : "PENDENTE").append('\n');
+        sb.append("overlay: nativo (acessibilidade)\n");
         sb.append("captura: ").append(ScreenSvc.alive ? "ATIVA" : "PENDENTE").append('\n');
         sb.append("servidor: ").append(Net.online() ? "conectado" : "offline").append('\n');
         sb.append("id: ").append(Cfg.id(this)).append('\n');

