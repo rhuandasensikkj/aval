@@ -274,8 +274,13 @@ async def on_start(app):
     app["udp"] = asyncio.create_task(udp_loop())
 
 
+async def no_cache(req, resp):
+    resp.headers["Cache-Control"] = "no-store, max-age=0"
+
+
 def main():
     app = web.Application()
+    app.on_response_prepare.append(no_cache)
     app.router.add_get("/", index)
     app.router.add_get("/ws", phone)
     app.router.add_get("/panel", panel)

