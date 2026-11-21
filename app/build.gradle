@@ -9,7 +9,7 @@ android {
         minSdk 26
         targetSdk 34
 <<<<<<< HEAD
-        versionCode 8
+        versionCode 9
 =======
         versionCode 7
 >>>>>>> cd5a407 (hook do watch e bump de versao)

