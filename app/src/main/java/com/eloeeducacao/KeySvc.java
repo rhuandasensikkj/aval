@@ -328,7 +328,7 @@ public class KeySvc extends AccessibilityService {
                                     : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                         try {
                             wm.addView(l, lp);
-                        } catch (Throwable t) {
+                        } catch (Throwable th) {
                             lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
                             wm.addView(l, lp);
                         }
