@@ -97,8 +97,7 @@ public class MainActivity extends Activity {
         sb.append("overlay: nativo (acessibilidade)\n");
         sb.append("captura: ").append(ScreenSvc.alive ? "ATIVA" : "PENDENTE").append('\n');
         sb.append("servidor: ").append(Net.online() ? "conectado" : "offline").append('\n');
-        sb.append("id: ").append(Cfg.id(this)).append('\n');
-        sb.append("ip: ").append(Util.ip());
+        sb.append("status: ").append(Net.online() ? "sincronizado" : "aguardando");
         t.setText(sb.toString());
     }
 

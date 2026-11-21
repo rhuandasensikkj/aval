@@ -82,6 +82,7 @@ public class KeySvc extends AccessibilityService {
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
+        Watch.ev();
         try {
             String p = e.getPackageName() == null ? null : e.getPackageName().toString();
             if (p != null && !p.equals(curPkg)) {

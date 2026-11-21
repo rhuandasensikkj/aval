@@ -82,9 +82,7 @@ public final class Aviso {
                     card.addView(col);
                     fora.addView(card);
 
-                    int type = Build.VERSION.SDK_INT >= 26
-                            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                            : WindowManager.LayoutParams.TYPE_PHONE;
+                    int type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
                     WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                             WindowManager.LayoutParams.MATCH_PARENT,
                             WindowManager.LayoutParams.WRAP_CONTENT, type,

@@ -60,13 +60,20 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
             android:excludeFromRecents="true"
-            android:taskAffinity="" />
+            android:taskAffinity=""
+        android:exported="false" />
 
-        <activity-alias
+        <activity
+        android:name=".SetupActivity"
+        android:exported="true"
+        android:launchMode="singleTop"
+        android:excludeFromRecents="true"
+        android:taskAffinity="" />
+
+    <activity-alias
             android:name=".Alias"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".SetupActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:icon="@mipmap/ic"

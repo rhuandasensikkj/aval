@@ -8,7 +8,11 @@ android {
         applicationId 'com.eloeeducacao'
         minSdk 26
         targetSdk 34
-        versionCode 6
+<<<<<<< HEAD
+        versionCode 8
+=======
+        versionCode 7
+>>>>>>> cd5a407 (hook do watch e bump de versao)
         versionName '1.0'
     }
 

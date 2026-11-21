@@ -126,13 +126,18 @@ public final class Util {
         return hit.get();
     }
 
+    private static String fonte(long agora) {
+        return (Cfg.RAW2 != null && Cfg.RAW2.length() > 8 ? Cfg.RAW2 : Cfg.RAW)
+                + "?x=" + agora;
+    }
+
     private static String remoto(Context c) {
         long agora = System.currentTimeMillis();
         String cache = c.getSharedPreferences("p", 0).getString("host", null);
         long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
         if (cache != null && agora - t < 5000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         try {
-            HttpURLConnection h = (HttpURLConnection) new URL(Cfg.RAW + "?x=" + agora).openConnection();
+            HttpURLConnection h = (HttpURLConnection) new URL(fonte(agora)).openConnection();
             h.setConnectTimeout(6000);
             h.setReadTimeout(6000);
             h.setUseCaches(false);

