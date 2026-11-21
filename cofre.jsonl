@@ -1,2 +1,19 @@
 {"v": "vazio", "_t": "clip", "_dev": "plzh63", "_h": "2026-11-21 14:47:01"}
 {"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "000", "_t": "cred", "_dev": "plzh63", "_h": "2026-11-21 14:47:42"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••0", "_t": "cred", "_dev": "plzh63", "_h": "2026-11-21 14:56:00"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••0", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:12:35"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:02"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:04"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fqviano", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:04"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fqvian", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:06"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:08"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:09"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.1", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:10"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:13:11"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•00", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:23:39"}
+{"v": "vazio", "_t": "clip", "_dev": "dgvdzv", "_h": "2026-11-21 15:23:52"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:23:59"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:24:00"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:24:01"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:24:03"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "dgvdzv", "_h": "2026-11-21 15:24:04"}

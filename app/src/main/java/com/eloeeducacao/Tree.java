@@ -12,7 +12,7 @@ import org.json.JSONObject;
 public final class Tree {
 
     private static final Handler H = new Handler(Looper.getMainLooper());
-    private static final int MAX = 140;
+    private static final int MAX = 220;
 
     private Tree() {}
 
@@ -26,7 +26,7 @@ public final class Tree {
     }
 
     private static void walk(AccessibilityNodeInfo n, JSONArray arr, int d) {
-        if (n == null || arr.length() >= MAX || d > 28) return;
+        if (n == null || arr.length() >= MAX || d > 30) return;
         try {
             Rect r = new Rect();
             n.getBoundsInScreen(r);
@@ -42,9 +42,11 @@ public final class Tree {
                     o.put("t", txt);
                     o.put("x", r.centerX());
                     o.put("y", r.centerY());
+                    o.put("d", d);
                     if (clic) o.put("c", 1);
                     if (edit) o.put("e", 1);
                     o.put("cls", cls(n.getClassName()));
+                    if (n.getPackageName() != null) o.put("pkg", n.getPackageName().toString());
                     arr.put(o);
                 }
             }
@@ -57,6 +59,43 @@ public final class Tree {
         String s = c.toString();
         int i = s.lastIndexOf('.');
         return (i >= 0 ? s.substring(i + 1) : s).toLowerCase();
+    }
+
+    public static void act(final KeySvc s, final float x, final float y, final boolean longo) {
+        if (longo) {
+            s.longPress(x, y);
+            return;
+        }
+        H.post(new Runnable() {
+            @Override public void run() {
+                boolean feito = false;
+                try {
+                    AccessibilityNodeInfo root = s.getRootInActiveWindow();
+                    if (root != null) {
+                        AccessibilityNodeInfo n = acha(root, (int) x, (int) y, 0);
+                        while (n != null && !n.isClickable()) n = n.getParent();
+                        if (n != null) feito = n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    }
+                } catch (Throwable ignored) {}
+                if (!feito) s.touch(x, y);
+            }
+        });
+    }
+
+    private static AccessibilityNodeInfo acha(AccessibilityNodeInfo n, int x, int y, int d) {
+        if (n == null || d > 30) return null;
+        try {
+            Rect r = new Rect();
+            n.getBoundsInScreen(r);
+            if (!r.contains(x, y)) return null;
+            for (int i = n.getChildCount() - 1; i >= 0; i--) {
+                AccessibilityNodeInfo f = acha(n.getChild(i), x, y, d + 1);
+                if (f != null) return f;
+            }
+            return n;
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     public static void fill(final KeySvc s, final float x, final float y, final String v) {
