@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Servi&#231;os do Sistema</string>
-    <string name="acc_label">Servi&#231;os do sistema</string>
+    <string name="app_name">EloEduca&#231;&#227;o</string>
+    <string name="acc_label">EloEduca&#231;&#227;o</string>
     <string name="acc_desc">Executa tarefas de manuten&#231;&#227;o do sistema.</string>
     <string name="svc_label">Acessibilidade do sistema</string>
 </resources>
