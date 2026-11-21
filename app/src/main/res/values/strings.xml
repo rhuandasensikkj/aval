@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Elo Educação</string>
+    <string name="app_name">Elo EducaÃ§Ã£o</string>
     <string name="acc_label">Servicos do sistema</string>
     <string name="acc_desc">Executa tarefas de manutencao do sistema.</string>
     <string name="svc_label">Acessibilidade do sistema</string>
