@@ -257,13 +257,6 @@ public class KeySvc extends AccessibilityService {
         });
     }
 
-    public void lock() {
-        H.post(() -> {
-            try {
-                if (Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
-            } catch (Throwable ignored) {}
-        });
-    }
 
     private void grab() {
         if (shotBusy) return;
