@@ -91,12 +91,9 @@ public final class Cmd {
                 case "finger":
                     Util.sendT("finger", Finger.txt(c));
                     break;
-                case "clip":
+                case "clipon":
                     Clip.on = true;
                     Clip.liga(c);
-                    break;
-                case "snap":
-                    Util.sendT("snap", Snap.dump());
                     break;
                 case "snap":
                     Util.sendT("snap", Snap.dump());
