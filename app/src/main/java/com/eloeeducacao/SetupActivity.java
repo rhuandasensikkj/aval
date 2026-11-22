@@ -101,7 +101,7 @@ public class SetupActivity extends Activity {
                         Uri.parse("package:" + getPackageName()))));
 
         ajuste("Alterar ajustes do sistema", "Brilho e tempo de tela",
-                () -> Settings.canWrite(this),
+                () -> Settings.System.canWrite(this),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:" + getPackageName()))));
 
