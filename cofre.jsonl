@@ -21,3 +21,9 @@
 {"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "ea1eet", "_h": "2026-11-21 18:19:49"}
 {"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "ea1eet", "_h": "2026-11-21 18:19:50"}
 {"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "ea1eet", "_h": "2026-11-21 18:19:50"}
+{"app": "com.google.android.inputmethod.latin", "campo": "password_entry", "v": "••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:25:10"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "••••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:25:11"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "••••", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:25:13"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "••••9", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:25:14"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:39:30"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:40:46"}

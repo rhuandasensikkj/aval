@@ -18,9 +18,10 @@ nav b.on{color:var(--ac);border-left-color:var(--ac);background:var(--pn2)}
 nav b:hover{color:var(--tx);background:var(--pn2)}
 nav b em{display:none;position:absolute;top:2px;right:2px;background:var(--ac);color:#fff;font-style:normal;font-size:8px;border-radius:6px;padding:0 3px}
 nav b.em em{display:block}
-#wrap{flex:1 1 0;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
-#wrap.zoom{align-items:flex-start;justify-content:flex-start;overflow:auto}
-#scr{display:block;width:auto;height:auto;max-width:100%;max-height:100%;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none}
+#wrap{flex:1 1 auto;min-width:0;min-height:0;position:relative;background:#000;overflow:hidden}
+#wrap.zoom{overflow:auto}
+#scr{position:absolute;top:0;right:0;bottom:0;left:0;margin:auto;display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none}
+#wrap.zoom #scr{top:0;left:0;right:auto;bottom:auto;margin:0;max-width:none;max-height:none}
 #st{position:absolute;left:0;bottom:0;padding:2px 8px;font:11px monospace;color:var(--warn);pointer-events:none;background:#000000aa}
 #tbar{display:flex;gap:4px;padding:4px 6px;background:var(--pn);border-top:1px solid var(--ln);flex-wrap:wrap;flex:none}
 aside{width:392px;display:flex;flex-direction:column;background:var(--pn);border-left:1px solid var(--ln);min-width:0;flex:none}
@@ -68,7 +69,7 @@ textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:v
 .aj span{flex:1;color:var(--dim)}
 body.somente header,body.somente nav,body.somente aside,body.somente #tbar{display:none}
 body.semAside aside{display:none}
-@media (max-width:1200px){aside{width:320px}}
+@media (max-width:1200px){aside{width:320px;max-width:46vw}}
 @media (max-width:900px){
   main{flex-direction:column}
   nav{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--ln);padding:0;flex:none}
@@ -88,6 +89,7 @@ body.semAside aside{display:none}
 <button id=so title="Esconde tudo e mostra só a tela (Esc sai)" onclick="soTela()">só tela</button>
 <button id=sp title="Mostra ou esconde o painel lateral" onclick="document.body.classList.toggle('semAside');setTimeout(fit,80)">painel</button>
 <button id=mg title="Ímã: encaixa o toque no elemento mais próximo" onclick="mag=!mag;this.classList.toggle('on',mag)">ímã</button>
+<button class=pri onclick="go('arvore')" title="Abre a lista de elementos da tela por texto">árvore</button>
 <button onclick="document.getElementById('mais').hidden=!document.getElementById('mais').hidden">mais opções</button>
 </header>
 <div id=mais hidden>

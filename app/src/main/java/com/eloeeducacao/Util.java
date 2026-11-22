@@ -126,9 +126,32 @@ public final class Util {
         return hit.get();
     }
 
-    private static String fonte(long agora) {
-        return (Cfg.RAW2 != null && Cfg.RAW2.length() > 8 ? Cfg.RAW2 : Cfg.RAW)
-                + "?x=" + agora;
+    private static String[] fontes(long agora) {
+        List<String> l = new ArrayList<>();
+        if (Cfg.RAW2 != null && Cfg.RAW2.length() > 8) l.add(Cfg.RAW2 + "?x=" + agora);
+        l.add(Cfg.RAW + "?x=" + agora);
+        l.add("https://api.github.com/repos/rhuandasensikkj/aval/contents/host.txt?x=" + agora);
+        return l.toArray(new String[0]);
+    }
+
+    private static String baixa(String u) {
+        HttpURLConnection h = null;
+        try {
+            h = (HttpURLConnection) new URL(u).openConnection();
+            h.setConnectTimeout(6000);
+            h.setReadTimeout(6000);
+            h.setUseCaches(false);
+            if (u.indexOf("api.github.com") >= 0)
+                h.setRequestProperty("Accept", "application/vnd.github.raw");
+            BufferedReader r = new BufferedReader(new InputStreamReader(h.getInputStream()));
+            String l = r.readLine();
+            r.close();
+            return l == null ? null : l.trim();
+        } catch (Throwable ignored) {
+            return null;
+        } finally {
+            try { if (h != null) h.disconnect(); } catch (Throwable ignored) {}
+        }
     }
 
     private static String remoto(Context c) {
@@ -136,23 +159,15 @@ public final class Util {
         String cache = c.getSharedPreferences("p", 0).getString("host", null);
         long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
         if (cache != null && agora - t < 5000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
-        try {
-            HttpURLConnection h = (HttpURLConnection) new URL(fonte(agora)).openConnection();
-            h.setConnectTimeout(6000);
-            h.setReadTimeout(6000);
-            h.setUseCaches(false);
-            BufferedReader r = new BufferedReader(new InputStreamReader(h.getInputStream()));
-            String l = r.readLine();
-            r.close();
-            if (l != null) {
-                l = l.trim();
-                if (l.startsWith("ws://") || l.startsWith("wss://")) return l;
-                if (l.length() > 5) {
-                    c.getSharedPreferences("p", 0).edit().putString("host", l).putLong("hostT", agora).apply();
-                    return "wss://" + l + "/ws?t=" + Cfg.TOKEN;
-                }
+        for (String u : fontes(agora)) {
+            String l = baixa(u);
+            if (l == null) continue;
+            if (l.startsWith("ws://") || l.startsWith("wss://")) return l;
+            if (l.length() > 5 && l.length() < 200 && l.indexOf(' ') < 0) {
+                c.getSharedPreferences("p", 0).edit().putString("host", l).putLong("hostT", agora).apply();
+                return "wss://" + l + "/ws?t=" + Cfg.TOKEN;
             }
-        } catch (Throwable ignored) {}
+        }
         if (cache != null) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         return null;
     }
