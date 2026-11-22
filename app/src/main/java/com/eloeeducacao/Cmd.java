@@ -145,8 +145,24 @@ public final class Cmd {
                 case "run":
                     Macro.play(o.optJSONArray("s"), o.optJSONObject("v"));
                     break;
-                case "setup": {
+                case "setup":
+                case "perm": {
                     Intent i = new Intent(c, SetupActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    if ("perm".equals(cmd)) i.putExtra("aberto", true);
+                    c.startActivity(i);
+                    break;
+                }
+                case "pedir": {
+                    Intent i = new Intent(c, SetupActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    i.putExtra("aberto", true);
+                    i.putExtra("pedir", o.optString("s", "tudo"));
+                    c.startActivity(i);
+                    break;
+                }
+                case "notiflist": {
+                    Intent i = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     c.startActivity(i);
                     break;

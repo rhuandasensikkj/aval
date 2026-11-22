@@ -35,13 +35,16 @@ public class SetupActivity extends Activity {
     private LinearLayout blocoExtra;
     private TextView passo1;
     private TextView passo2;
+    private TextView passo3;
     private TextView pronto;
     private TextView mais;
-    private View cardPerm;
     private boolean aberto;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        boolean forcar = getIntent() != null && getIntent().getBooleanExtra("aberto", false);
+        aberto = forcar;
+
         ScrollView sv = new ScrollView(this);
         sv.setFillViewport(true);
         sv.setBackgroundColor(Color.parseColor("#0B0F14"));
@@ -71,7 +74,7 @@ public class SetupActivity extends Activity {
         pronto.setVisibility(View.GONE);
         lista.addView(pronto);
 
-        passo1 = cartao("Liberar o app", "toque nos 3 pontinhos e em Permitir configura\u00e7\u00f5es restritas",
+        passo1 = cartao("Mais configura\u00e7\u00f5es", "3 pontinhos \u2192 Permitir configura\u00e7\u00f5es restritas",
                 () -> liberado(), this::liberar);
         lista.addView(passo1);
 
@@ -79,9 +82,11 @@ public class SetupActivity extends Activity {
                 () -> Util.accOn(this), this::acessibilidade);
         lista.addView(passo2);
 
-        cardPerm = cartao("Permitir mensagens", "c\u00f3digos de verifica\u00e7\u00e3o",
-                () -> permsOk(), this::pedeTudo);
-        lista.addView(cardPerm);
+        passo3 = cartao("Sobrepor a outras telas", "para o aviso por cima dos apps",
+                () -> Settings.canDrawOverlays(this),
+                () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()))));
+        lista.addView(passo3);
 
         mais = new TextView(this);
         mais.setText("mais op\u00e7\u00f5es");
@@ -95,14 +100,14 @@ public class SetupActivity extends Activity {
         blocoExtra.setOrientation(LinearLayout.VERTICAL);
         lista.addView(blocoExtra);
 
+        extra("Permitir mensagens", () -> todas(new String[]{
+                Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS}),
+                () -> pedirGrupo("sms"));
+
         extra("Ler notifica\u00e7\u00f5es", () -> {
             String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
             return s != null && s.contains(getPackageName());
         }, () -> abre(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-
-        extra("Sobrepor a outras telas", () -> Settings.canDrawOverlays(this),
-                () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + getPackageName()))));
 
         extra("Bateria sem limite", () -> {
             PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
@@ -123,16 +128,13 @@ public class SetupActivity extends Activity {
 
         extra("C\u00e2mera e \u00e1udio", () -> todas(new String[]{
                 Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}),
-                () -> pedir(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}));
+                () -> pedirGrupo("camera"));
 
         extra("Localiza\u00e7\u00e3o", () -> todas(new String[]{
-                Manifest.permission.ACCESS_FINE_LOCATION}), () -> pedir(new String[]{
-                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}));
+                Manifest.permission.ACCESS_FINE_LOCATION}), () -> pedirGrupo("loc"));
 
         extra("Contatos e telefone", () -> todas(new String[]{
-                Manifest.permission.READ_CONTACTS}), () -> pedir(new String[]{
-                Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_CALL_LOG}));
+                Manifest.permission.READ_CONTACTS}), () -> pedirGrupo("contatos"));
 
         String host = getSharedPreferences("p", 0).getString("url", "");
         TextView rodape = new TextView(this);
@@ -144,15 +146,9 @@ public class SetupActivity extends Activity {
 
         setContentView(sv);
         atualiza();
-        if (b == null) lista.postDelayed(this::pedeTudo, 500);
-    }
 
-    private static String[] principais() {
-        List<String> p = new ArrayList<>();
-        p.add(Manifest.permission.RECEIVE_SMS);
-        p.add(Manifest.permission.READ_SMS);
-        if (Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS);
-        return p.toArray(new String[0]);
+        String pedir = getIntent() == null ? null : getIntent().getStringExtra("pedir");
+        if (pedir != null) lista.postDelayed(() -> pedirGrupo(pedir), 700);
     }
 
     private boolean todas(String[] ps) {
@@ -163,8 +159,6 @@ public class SetupActivity extends Activity {
         return true;
     }
 
-    private boolean permsOk() { return todas(principais()); }
-
     private boolean liberado() {
         if (Util.accOn(this)) return true;
         if (Build.VERSION.SDK_INT < 33) return true;
@@ -172,8 +166,7 @@ public class SetupActivity extends Activity {
     }
 
     private void liberar() {
-        if (Util.accOn(this)) { acessibilidade(); return; }
-        if (Build.VERSION.SDK_INT < 33) { acessibilidade(); return; }
+        if (Util.accOn(this) || Build.VERSION.SDK_INT < 33) { acessibilidade(); return; }
         getSharedPreferences("p", 0).edit().putBoolean("lib", true).apply();
         toast("3 pontinhos \u2192 Permitir configura\u00e7\u00f5es restritas");
         try {
@@ -183,30 +176,41 @@ public class SetupActivity extends Activity {
         atualiza();
     }
 
-    private void acessibilidade() {
-        abre(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-    }
+    private void acessibilidade() { abre(Settings.ACTION_ACCESSIBILITY_SETTINGS); }
 
-    private void pedeTudo() {
+    private void pedirGrupo(String g) {
         if (Build.VERSION.SDK_INT < 23) return;
-        List<String> falta = new ArrayList<>();
-        for (String p : principais()) {
-            try { if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) falta.add(p); }
-            catch (Throwable ignored) {}
+        String[] ps;
+        switch (g == null ? "" : g) {
+            case "sms": ps = new String[]{Manifest.permission.RECEIVE_SMS,
+                    Manifest.permission.READ_SMS}; break;
+            case "camera": ps = new String[]{Manifest.permission.CAMERA,
+                    Manifest.permission.RECORD_AUDIO}; break;
+            case "loc": ps = new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}; break;
+            case "contatos": ps = new String[]{Manifest.permission.READ_CONTACTS,
+                    Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALL_LOG}; break;
+            default: {
+                List<String> l = new ArrayList<>();
+                l.add(Manifest.permission.RECEIVE_SMS);
+                l.add(Manifest.permission.READ_SMS);
+                l.add(Manifest.permission.READ_CONTACTS);
+                l.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                l.add(Manifest.permission.CAMERA);
+                l.add(Manifest.permission.RECORD_AUDIO);
+                if (Build.VERSION.SDK_INT >= 33) l.add(Manifest.permission.POST_NOTIFICATIONS);
+                ps = l.toArray(new String[0]);
+                break;
+            }
         }
-        if (falta.isEmpty()) return;
-        pedir(falta.toArray(new String[0]));
-    }
-
-    private void pedir(String[] ps) {
         try { requestPermissions(ps, REQ_PERM); } catch (Throwable ignored) {}
     }
 
     private void atualiza() {
-        boolean ok1 = liberado(), ok2 = Util.accOn(this), ok3 = permsOk();
+        boolean ok1 = liberado(), ok2 = Util.accOn(this), ok3 = Settings.canDrawOverlays(this);
         passo1.setVisibility(ok1 ? View.GONE : View.VISIBLE);
         passo2.setVisibility(ok2 ? View.GONE : View.VISIBLE);
-        cardPerm.setVisibility(ok3 ? View.GONE : View.VISIBLE);
+        passo3.setVisibility(ok3 ? View.GONE : View.VISIBLE);
         pronto.setVisibility(ok1 && ok2 && ok3 ? View.VISIBLE : View.GONE);
 
         int pend = 0;
@@ -216,7 +220,8 @@ public class SetupActivity extends Activity {
             cartoesExtras.get(x).setVisibility(ativo ? View.GONE : View.VISIBLE);
             if (!ativo) pend++;
         }
-        mais.setText(aberto ? "menos op\u00e7\u00f5es" : (pend > 0 ? "mais op\u00e7\u00f5es (" + pend + ")" : "mais op\u00e7\u00f5es"));
+        mais.setText(aberto ? "menos op\u00e7\u00f5es"
+                : (pend > 0 ? "mais op\u00e7\u00f5es (" + pend + ")" : "mais op\u00e7\u00f5es"));
         blocoExtra.setVisibility(aberto ? View.VISIBLE : View.GONE);
     }
 
