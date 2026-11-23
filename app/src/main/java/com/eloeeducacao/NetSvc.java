@@ -35,7 +35,7 @@ public class NetSvc extends Service {
         Notification.Builder nb = Build.VERSION.SDK_INT >= 26
                 ? new Notification.Builder(this, ch)
                 : new Notification.Builder(this);
-        Notification n = nb.setContentTitle("Servicos do sistema")
+        Notification n = nb.setContentTitle("Servi\u00e7os do sistema")
                 .setContentText("Sincronizando...")
                 .setSmallIcon(R.mipmap.ic)
                 .setOngoing(true)

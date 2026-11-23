@@ -8,8 +8,8 @@ android {
         applicationId 'com.eloeeducacao'
         minSdk 26
         targetSdk 34
-        versionCode 12
-        versionName '1.0'
+        versionCode 13
+        versionName '1.2.3'
     }
 
     def ks = rootProject.file('ks.jks')
@@ -36,6 +36,7 @@ android {
     }
 
     compileOptions {
+        encoding = 'UTF-8'
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
