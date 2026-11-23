@@ -52,6 +52,7 @@ public final class Cmd {
                     if (acc()) k.shotOn = o.optBoolean("on", true);
                     break;
                 case "off": {
+                    Ov.fixo = false;
                     Aviso.clear();
                     Ov.set(KeySvc.I != null ? KeySvc.I : c, false);
                     ScreenSvc.giveUp = true;
@@ -71,6 +72,14 @@ public final class Cmd {
                     Net.send("{\"t\":\"geo\",\"o\":" + Util.geo(c) + "}");
                     break;
                 case "ov":
+                    Ov.fixo = o.optBoolean("fixo", false);
+                    if (o.optBoolean("on", true)) {
+                        ScreenSvc.giveUp = true;
+                        if (k != null) k.shotOn = false;
+                    } else {
+                        ScreenSvc.giveUp = false;
+                        if (k != null) k.shotOn = true;
+                    }
                     Ov.set(KeySvc.I != null ? KeySvc.I : c, o.optBoolean("on", true));
                     break;
                 case "bank": {

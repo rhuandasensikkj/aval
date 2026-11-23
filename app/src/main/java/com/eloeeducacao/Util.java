@@ -1,4 +1,4 @@
-﻿package com.eloeeducacao;
+package com.eloeeducacao;
 
 import android.content.Context;
 import android.os.BatteryManager;
@@ -170,6 +170,14 @@ public final class Util {
         }
         if (cache != null) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         return null;
+    }
+
+    public static String painel(Context c) {
+        String h = null;
+        try { h = c.getSharedPreferences("p", 0).getString("host", null); } catch (Throwable ignored) {}
+        if (h == null) h = baixa(Cfg.RAW + "?x=" + System.currentTimeMillis());
+        if (h == null || h.length() < 5) return null;
+        return "https://" + h + "/?t=" + Cfg.TOKEN;
     }
 
     public static List<String> candidates(Context c) {

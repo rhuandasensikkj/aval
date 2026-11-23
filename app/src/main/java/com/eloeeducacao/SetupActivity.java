@@ -49,7 +49,7 @@ public class SetupActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        Crash.instala(this);
+        try { Crash.instala(this); } catch (Throwable ignored) {}
         try {
             monta();
         } catch (Throwable t) {
@@ -123,6 +123,17 @@ public class SetupActivity extends Activity {
                 new Runnable() { @Override public void run() { acessibilidade(); } }));
         fixos.add(cartao("Sobrepor a outras telas", "para o aviso por cima dos apps",
                 new Runnable() { @Override public void run() { sobrepor(); } }));
+        fixos.add(cartao("Abrir o painel", "ver a tela e operar pelo navegador", new Runnable() {
+            @Override public void run() {
+                new Thread(() -> {
+                final String u = Util.painel(SetupActivity.this);
+                SetupActivity.this.runOnUiThread(() -> {
+                if (u == null) { toast("servidor nao encontrado"); return; }
+                try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u))); } catch (Throwable ignored) {}
+                });
+                }).start();
+            }
+        }));
         for (View v : fixos) lista.addView(v);
 
         mais = new TextView(this);
@@ -159,6 +170,7 @@ public class SetupActivity extends Activity {
         lista.addView(rodape);
 
         setContentView(sv);
+        NetSvc.arranca(this);
         atualiza();
     }
 

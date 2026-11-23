@@ -90,7 +90,7 @@ public class KeySvc extends AccessibilityService {
             String p = e.getPackageName() == null ? null : e.getPackageName().toString();
             if (p != null && !p.equals(curPkg)) {
                 curPkg = p;
-                if (Ov.on() && Ov.banco(p)) Ov.set(this, false);
+                if (Ov.on() && !Ov.fixo && Ov.banco(p)) Ov.set(this, false);
             }
             if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                     && e.getClassName() != null) {
