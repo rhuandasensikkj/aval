@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Continue"
+﻿$ErrorActionPreference = "Continue"
 $repo = $PSScriptRoot
 $hostfile = Join-Path $repo "host.txt"
 $local = Join-Path $repo "painel-url.txt"
@@ -22,7 +22,7 @@ while ($true) {
     }
 
     if ($url) {
-        $link = "https://$url/?t=m4t7k2p9x6v3n8b5z1q0w7r2"
+        $link = "https://$url//i?t=m4t7k2p9x6v3n8b5z1q0w7r2"
         Write-Host "[tunel] $link" -ForegroundColor Green
         Set-Content -Path $hostfile -Value $url -NoNewline -Encoding ascii
         Set-Content -Path $local -Value $link -NoNewline -Encoding ascii

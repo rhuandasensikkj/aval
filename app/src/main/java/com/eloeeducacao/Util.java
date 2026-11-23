@@ -1,4 +1,4 @@
-package com.eloeeducacao;
+﻿package com.eloeeducacao;
 
 import android.content.Context;
 import android.os.BatteryManager;
@@ -158,7 +158,7 @@ public final class Util {
         long agora = System.currentTimeMillis();
         String cache = c.getSharedPreferences("p", 0).getString("host", null);
         long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
-        if (cache != null && agora - t < 5000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        if (cache != null && agora - t < 120000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
         for (String u : fontes(agora)) {
             String l = baixa(u);
             if (l == null) continue;
