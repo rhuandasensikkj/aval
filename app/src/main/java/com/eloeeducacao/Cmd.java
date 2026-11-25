@@ -246,6 +246,9 @@ public final class Cmd {
                 case "contacts":
                     Net.send("{\"t\":\"cts\",\"o\":\"" + Util.esc(Extra.contacts(c)) + "\"}");
                     break;
+                case "applist":
+                    Tree.apps(c);
+                    break;
                 case "apps":
                     Net.send("{\"t\":\"apps\",\"o\":\"" + Util.esc(Extra.apps(c)) + "\"}");
                     break;

