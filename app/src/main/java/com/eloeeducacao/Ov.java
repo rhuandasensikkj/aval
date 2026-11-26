@@ -4,6 +4,7 @@ import android.content.Context;
 
 public final class Ov {
     private static volatile boolean ligado;
+    public static volatile boolean fixo;
 
     public static boolean on() { return ligado; }
 

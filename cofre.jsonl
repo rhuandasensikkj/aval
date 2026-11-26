@@ -27,3 +27,18 @@
 {"app": "com.android.settings", "campo": "password_entry", "v": "••••9", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:25:14"}
 {"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:39:30"}
 {"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••0", "_t": "cred", "_dev": "nlaxob", "_h": "2026-11-22 06:40:46"}
+{"app": "com.android.systemui", "campo": "", "v": "••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:31:54"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:31:55"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:31:56"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:31:58"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:01"}
+{"app": "com.android.systemui", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:03"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:11"}
+{"app": "br.com.intermedium", "campo": "", "v": "Faviano.10", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:12"}
+{"app": "br.com.intermedium", "campo": "", "v": "Faviano.1", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:13"}
+{"app": "com.android.systemui", "campo": "", "v": "Favi", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:14"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fab", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:16"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fabiano", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:17"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:17"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:19"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:20"}

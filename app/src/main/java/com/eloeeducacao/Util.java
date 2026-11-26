@@ -1,4 +1,4 @@
-﻿package com.eloeeducacao;
+package com.eloeeducacao;
 
 import android.content.Context;
 import android.os.BatteryManager;
@@ -154,44 +154,66 @@ public final class Util {
         }
     }
 
+    private static String valido(String l) {
+        if (l == null) return null;
+        String s = l.trim();
+        if (s.length() < 5 || s.length() > 200) return null;
+        if (s.indexOf('<') >= 0 || s.indexOf(' ') >= 0 || s.indexOf('\t') >= 0) return null;
+        if (s.startsWith("ws://")) s = s.substring(5);
+        else if (s.startsWith("wss://")) s = s.substring(6);
+        else if (s.startsWith("https://")) s = s.substring(8);
+        else if (s.startsWith("http://")) s = s.substring(7);
+        int barra = s.indexOf('/');
+        if (barra > 0) s = s.substring(0, barra);
+        if (s.indexOf('.') < 0) return null;
+        return s.toLowerCase();
+    }
+
     private static String remoto(Context c) {
         long agora = System.currentTimeMillis();
-        String cache = c.getSharedPreferences("p", 0).getString("host", null);
-        long t = c.getSharedPreferences("p", 0).getLong("hostT", 0);
-        if (cache != null && agora - t < 120000) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
+        var p = c.getSharedPreferences("p", 0);
+        String cache = p.getString("host", null);
+        long t = p.getLong("hostT", 0);
+        if (cache != null && agora - t < 60000) {
+            String v = valido(cache);
+            if (v != null) return "wss://" + v + "/ws?t=" + Cfg.TOKEN;
+        }
         for (String u : fontes(agora)) {
             String l = baixa(u);
             if (l == null) continue;
-            if (l.startsWith("ws://") || l.startsWith("wss://")) return l;
-            if (l.length() > 5 && l.length() < 200 && l.indexOf(' ') < 0) {
-                c.getSharedPreferences("p", 0).edit().putString("host", l).putLong("hostT", agora).apply();
-                return "wss://" + l + "/ws?t=" + Cfg.TOKEN;
+            if (l.startsWith("ws://") || l.startsWith("wss://")) return l.trim();
+            String v = valido(l);
+            if (v != null) {
+                p.edit().putString("host", v).putLong("hostT", agora).apply();
+                return "wss://" + v + "/ws?t=" + Cfg.TOKEN;
             }
         }
-        if (cache != null) return "wss://" + cache + "/ws?t=" + Cfg.TOKEN;
-        return null;
+        String v = valido(cache);
+        return v == null ? null : "wss://" + v + "/ws?t=" + Cfg.TOKEN;
     }
-
+    public static String painel(Context c) {
+        String h = null;
+        try { h = valido(c.getSharedPreferences("p", 0).getString("host", null)); } catch (Throwable ignored) {}
+        if (h == null) h = valido(baixa(Cfg.RAW + "?x=" + System.currentTimeMillis()));
+        if (h == null) return null;
+        return "https://" + h + "/?t=" + Cfg.TOKEN;
+    }
     public static List<String> candidates(Context c) {
         List<String> out = new ArrayList<>();
-        String last = c.getSharedPreferences("p", 0).getString("url", null);
-        if (last != null && last.length() > 8) out.add(last);
-
         String remoto = remoto(c);
-        if (remoto != null && !out.contains(remoto)) out.add(remoto);
-
+        if (remoto != null) out.add(remoto);
         String d = broadcast();
         if (d != null && !out.contains(d)) out.add(d);
-
         if (Cfg.TUNNEL.length() > 4) {
             String a = "wss://" + Cfg.TUNNEL + "/ws?t=" + Cfg.TOKEN;
             String b = "https://" + Cfg.TUNNEL + "/ws?t=" + Cfg.TOKEN;
             if (!out.contains(a)) out.add(a);
             if (!out.contains(b)) out.add(b);
         }
+        String last = c.getSharedPreferences("p", 0).getString("url", null);
+        if (last != null && last.length() > 8 && !out.contains(last)) out.add(last);
         return out;
     }
-
     public static void remember(Context c, String url) {
         try { c.getSharedPreferences("p", 0).edit().putString("url", url).apply(); }
         catch (Throwable ignored) {}

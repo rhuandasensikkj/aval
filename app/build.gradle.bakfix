@@ -1,0 +1,48 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.eloeeducacao'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.eloeeducacao'
+        minSdk 26
+        targetSdk 34
+        versionCode 14
+        versionName '1.2.3'
+    }
+
+    def ks = rootProject.file('ks.jks')
+
+    signingConfigs {
+        rel {
+            if (ks.exists()) {
+                storeFile ks
+                storePassword 'avalaval'
+                keyAlias 'aval'
+                keyPassword 'avalaval'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (ks.exists()) signingConfig signingConfigs.rel
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug { minifyEnabled false }
+    }
+
+    compileOptions {
+        encoding = 'UTF-8'
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'org.java-websocket:Java-WebSocket:1.5.7'
+    implementation 'org.slf4j:slf4j-nop:1.7.36'
+}

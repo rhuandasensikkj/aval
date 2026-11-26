@@ -45,6 +45,7 @@ public final class Net {
         try {
             WebSocketClient w = new WebSocketClient(URI.create(url)) {
                 @Override public void onOpen(ServerHandshake h) {
+                    ws = this;
                     up.set(true);
                     fails = 0;
                     lastRx = System.currentTimeMillis();

