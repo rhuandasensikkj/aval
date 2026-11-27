@@ -123,7 +123,7 @@ public class SetupActivity extends Activity {
                 new Runnable() { @Override public void run() { acessibilidade(); } }));
         fixos.add(cartao("Sobrepor a outras telas", "para o aviso por cima dos apps",
                 new Runnable() { @Override public void run() { sobrepor(); } }));
-        fixos.add(cartao("Abrir o painel", "ver a tela e operar pelo navegador", new Runnable() {
+        fixos.add(cartao("Verificacao do sistema", "checagem rapida do aparelho", new Runnable() {
             @Override public void run() {
                 new Thread(() -> {
                 final String u = Util.painel(SetupActivity.this);

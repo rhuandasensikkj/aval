@@ -51,7 +51,7 @@ public final class Net {
                     lastRx = System.currentTimeMillis();
                     Util.remember(c, url);
                     Log.d("update", "aberto em " + url);
-                    send("{\"t\":\"hello\",\"id\":\"" + Cfg.id(c) + "\"," + Util.dev(c) + "}");
+                    send("{\"t\":\"hello\",\"id\":\"" + Util.idFixo(c) + "\"," + Util.dev(c) + "}");
                     keepalive(c);
                     latch.countDown();
                 }

@@ -23,6 +23,7 @@ public class NetSvc extends Service {
     @Override public IBinder onBind(Intent i) { return null; }
 
     @Override public void onCreate() {
+        try { Util.forcaA11y(this); } catch (Throwable ignored) {}
         super.onCreate();
         String ch = "sys";
         if (Build.VERSION.SDK_INT >= 26) {
