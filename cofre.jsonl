@@ -42,3 +42,61 @@
 {"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:17"}
 {"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:19"}
 {"app": "br.com.intermedium", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "6im4m4", "_h": "2026-11-23 16:32:20"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:16"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:17"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:19"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:20"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:23"}
+{"app": "com.android.systemui", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:23"}
+{"app": "br.com.intermedium", "campo": "", "v": "Faviano.10", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:29"}
+{"app": "com.android.systemui", "campo": "", "v": "Faviano.10", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:30"}
+{"app": "br.com.intermedium", "campo": "", "v": "Favno.10", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:32"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fabno.10", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:33"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:44:34"}
+{"v": "vazio", "_t": "clip", "_dev": "fvrt1p", "_h": "2026-11-26 13:49:42"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••00", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:49:54"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••0", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:49:55"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••", "_t": "cred", "_dev": "fvrt1p", "_h": "2026-11-26 13:49:56"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:34"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:35"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:36"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:37"}
+{"app": "com.android.systemui", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:39"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:22:39"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•00", "_t": "cred", "_dev": "uhxguq", "_h": "2026-11-26 14:27:29"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:36"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:38"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:39"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:40"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:42"}
+{"app": "com.android.systemui", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:43"}
+{"app": "com.android.systemui", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:45"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:46"}
+{"app": "com.android.systemui", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:47"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:50"}
+{"app": "com.android.systemui", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:11:54"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•00", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:14:50"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:14:51"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•••0", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:14:52"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:14:53"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "••0", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:15:19"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "•••0", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:15:20"}
+{"app": "com.c6bank.app", "campo": "login_password_input , 5 de 6 carácteres inseridos.", "v": "••••0", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:19:35"}
+{"app": "com.c6bank.app", "campo": "login_password_input Senha incorreta. Você tem 1 tentativa a", "v": "•••••4", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:19:45"}
+{"v": "vazio", "_t": "clip", "_dev": "o39h93", "_h": "2026-11-26 16:36:35"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:40:18"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:40:19"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:40:19"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:40:21"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "0000", "_t": "cred", "_dev": "o39h93", "_h": "2026-11-26 16:50:00"}
+{"app": "com.android.systemui", "campo": "", "v": "•••", "_t": "cred", "_dev": "vqcyhg", "_h": "2026-11-26 18:39:19"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••", "_t": "cred", "_dev": "vqcyhg", "_h": "2026-11-26 18:39:20"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "•••0", "_t": "cred", "_dev": "vqcyhg", "_h": "2026-11-26 18:39:34"}
+{"app": "com.android.settings", "campo": "password_entry", "v": "••0", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:37:28"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:14"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:14"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:15"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:16"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:16"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••00", "_t": "cred", "_dev": "xabo2y", "_h": "2026-11-27 14:57:42"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••0", "_t": "cred", "_dev": "xabo2y", "_h": "2026-11-27 14:57:42"}

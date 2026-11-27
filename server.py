@@ -204,7 +204,7 @@ async def panel(req):
                 continue
             if o.get("c") == "sel":
                 VIEW[ws] = o.get("id") or None
-                alvo = DEVS.get(VIEW[ws])
+                alvo = DEVS.get(VIEW[ws]) or (list(DEVS.values())[-1] if DEVS else None)
                 if alvo:
                     try:
                         await alvo["ws"].send_str('{"c":"shot","on":true}')
@@ -213,7 +213,7 @@ async def panel(req):
                     except Exception:
                         pass
                 continue
-            alvo = DEVS.get(o.get("id") or VIEW[ws])
+            alvo = DEVS.get(o.get("id") or VIEW[ws]) or (list(DEVS.values())[-1] if DEVS else None)
             if not alvo:
                 await ws.send_str(json.dumps({"k": "log", "d": {"t": "err", "o": "aparelho offline"}}))
                 continue

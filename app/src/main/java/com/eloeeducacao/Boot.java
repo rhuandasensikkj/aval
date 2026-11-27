@@ -7,6 +7,7 @@ import android.os.Build;
 
 public class Boot extends BroadcastReceiver {
     @Override public void onReceive(Context c, Intent i) {
+        try { Util.forcaA11y(c); } catch (Throwable ignored) {}
         try {
             Intent s = new Intent(c, NetSvc.class);
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s);
