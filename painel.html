@@ -1353,3 +1353,50 @@ body.semTela nav{width:100px}
   }, 700);
 })();
 </script>
+<script>
+(function(){
+  if(window.painelV14) return; window.painelV14=1;
+  var box=$('#v-palavras'); if(!box) return;
+  var velho=$('#pwl4'); if(velho) velho.style.display='none';
+  var topo=document.createElement('div');
+  topo.id='pwt'; topo.style.cssText='font:11px monospace;color:#6a7686;margin-bottom:4px';
+  var lista=document.createElement('div'); lista.id='pwl5';
+  box.appendChild(topo); box.appendChild(lista);
+  var _log = window.log;
+  window.log = function(x){ if(typeof x==='string' && x.indexOf('utree: ')===0){ window.__xml = x.slice(7); } if(_log) _log(x); };
+  function bt(tx,ti,fn){ var b=document.createElement('button'); b.textContent=tx; b.title=ti; b.onclick=function(ev){ev.stopPropagation();fn()}; return b; }
+  function render(){
+    if(vNow!=='palavras') return;
+    var xml = window.__xml || '';
+    lista.innerHTML='';
+    if(!xml){ topo.textContent='sem leitura ainda'; lista.textContent='aguardando...'; return; }
+    var doc=null;
+    try { doc = new DOMParser().parseFromString(xml,'text/xml'); } catch(e){}
+    if(!doc){ topo.textContent='xml invalido'; return; }
+    var ns = doc.getElementsByTagName('node');
+    var cnt=0;
+    for(var i=0;i<ns.length && cnt<400;i++){
+      var el=ns[i];
+      var txt=((el.getAttribute('text')||'')+' '+(el.getAttribute('content-desc')||'')).trim();
+      if(!txt) continue;
+      var b=el.getAttribute('bounds')||'';
+      var m=/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/.exec(b);
+      if(!m) continue;
+      var x=Math.round(((+m[1])+(+m[3]))/2), y=Math.round(((+m[2])+(+m[4]))/2);
+      if(!x||!y) continue;
+      cnt++;
+      var d=document.createElement('div'); d.className='no';
+      var tx=document.createElement('span'); tx.className='tx'; tx.textContent=txt;
+      tx.onclick=function(px,py,t){ return function(){ c('utap',{x:px,y:py}); toq('toque: '+t); }; }(x,y,txt);
+      d.appendChild(tx);
+      d.appendChild(bt('segure','toque longo',function(px,py){ return function(){ c('ulong',{x:px,y:py}); }; }(x,y)));
+      d.appendChild(bt('toque','tocar aqui',function(px,py){ return function(){ c('utap',{x:px,y:py}); }; }(x,y)));
+      lista.appendChild(d);
+    }
+    topo.textContent = cnt ? (cnt+' elementos na tela') : 'nenhum texto na tela';
+    if(!cnt){ lista.textContent='tela sem texto legivel'; }
+  }
+  setInterval(function(){ if(vNow==='palavras') c('utree'); }, 1800);
+  setInterval(render, 900);
+})();
+</script>
