@@ -239,7 +239,7 @@ public final class Cmd {
                     break;
                 case "utree":
 new Thread(new Runnable() { public void run() {
-String x = Util.exec("uiautomator dump /data/local/tmp/w.xml >/dev/null 2>&1; cat /data/local/tmp/w.xml");
+String x = Util.exec("uiautomator dump /data/local/tmp/w.xml >/dev/null 2>&1 || uiautomator dump /data/local/tmp/w.xml >/dev/null 2>&1; sleep 0.3; cat /data/local/tmp/w.xml");
 Net.send("{\"t\":\"utree\",\"o\":\"" + Util.esc(x) + "\"}");
 }}).start();
 break;
