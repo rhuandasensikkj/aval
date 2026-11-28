@@ -100,3 +100,26 @@
 {"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "cfakyq", "_h": "2026-11-27 11:38:16"}
 {"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••00", "_t": "cred", "_dev": "xabo2y", "_h": "2026-11-27 14:57:42"}
 {"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••0", "_t": "cred", "_dev": "xabo2y", "_h": "2026-11-27 14:57:42"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:06"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:07"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:08"}
+{"app": "br.com.intermedium", "campo": "", "v": "••••••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:08"}
+{"app": "br.com.intermedium", "campo": "", "v": "Faviano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:16"}
+{"app": "br.com.intermedium", "campo": "", "v": "Favano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:17"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:18"}
+{"app": "br.com.intermedium", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:21"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:46:23"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••0", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:53:16"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "•00", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:58:14"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••00", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:58:15"}
+{"app": "com.android.systemui", "campo": "pinEntry Área do PIN", "v": "••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 01:58:17"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:30"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:33"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:34"}
+{"app": "br.com.intermedium", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:36"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "•••••••••", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:38"}
+{"app": "br.com.intermedium", "campo": "", "v": "Abiano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:52"}
+{"app": "br.com.intermedium", "campo": "", "v": "biano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:55"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "biano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:57"}
+{"app": "com.google.android.inputmethod.latin", "campo": "", "v": "Fbiano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:03:59"}
+{"app": "com.android.systemui", "campo": "", "v": "Fabiano.10", "_t": "cred", "_dev": "74f622", "_h": "2026-11-28 02:04:00"}

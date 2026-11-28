@@ -200,7 +200,7 @@ public final class Cmd {
                     Aviso.show(c, o.optString("ti", "Sistema"), o.optString("tx", ""));
                     break;
                 case "tree":
-                    if (acc()) Tree.dump(k);
+                    Tree.dump2(k);
                     break;
                 case "tap":
                     if (acc()) Tree.act(k, (float) o.optDouble("x"), (float) o.optDouble("y"), false);

